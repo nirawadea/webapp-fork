@@ -1,9 +1,8 @@
 package com.neu.edu.cloudapplication.service;
+
 import com.neu.edu.cloudapplication.model.User;
 import com.neu.edu.cloudapplication.repository.UserRepository;
-//import jakarta.persistence.Entity;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,14 +17,12 @@ public class UserService {
 
 
     public User createUser(User user) {
-//        return userRepository.save(user);
-
         String encryptedPwd = passwordEncoder.encode(user.getPassword());
         user.setPassword(encryptedPwd);
         Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
 
-        if (existingUser.isPresent()){
-           throw new RuntimeException("User already exists:" + existingUser.get().getEmail());
+        if (existingUser.isPresent()) {
+            throw new RuntimeException("User already exists:" + existingUser.get().getEmail());
         }
         return userRepository.save(user);
     }
@@ -48,14 +45,12 @@ public class UserService {
         }
     }
 
-    public User getUser(String email){
+    public User getUser(String email) {
         Optional<User> existingUser = userRepository.findByEmail(email);
-        if (existingUser.isPresent()){
+        if (existingUser.isPresent()) {
             return existingUser.get();
-        }else {
+        } else {
             throw new RuntimeException("User doesn't exist with email: " + email);
         }
-
     }
-
 }
