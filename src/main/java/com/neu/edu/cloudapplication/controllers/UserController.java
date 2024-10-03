@@ -31,7 +31,7 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Query parameters not allowed.");
         }
         if (!isValidEmail(user.getEmail())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username must be a valid email address.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("This Email is not valid!!!");
         }
         try {
             userService.createUser(user);
@@ -57,7 +57,7 @@ public class UserController {
         try {
 
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String authenticatedEmail = authentication.getName();  // This is the email used in basic auth
+            String authenticatedEmail = authentication.getName();
 
 
             if (!authenticatedEmail.equals(user.getEmail())) {
@@ -65,7 +65,7 @@ public class UserController {
             }
 
             userService.updateUser(user, authenticatedEmail);
-            return ResponseEntity.noContent().build();  // Return 204 No Content on success
+            return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
