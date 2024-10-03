@@ -20,7 +20,7 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
 
-    // Inject CustomUserDetailsService
+
     public SecurityConfig(CustomUserDetailsService customUserDetailsService) {
         this.customUserDetailsService = customUserDetailsService;
     }
@@ -28,18 +28,18 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Set session management to stateless (no session will be created)
+                // Set session to stateless(no session will be created)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // Disable CSRF and CORS as we are using basic auth for stateless REST APIs
+
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.disable())
 
-                // Configure authorization rules
+
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/healthz").permitAll()   // Permit health check endpoint
-                        .requestMatchers("/v1/user").permitAll()   // Permit user creation (signup) without authentication
-                        .anyRequest().authenticated()              // All other requests require authentication
+                        .requestMatchers("/healthz").permitAll()
+                        .requestMatchers("/v1/user").permitAll()
+                        .anyRequest().authenticated()
                 )
                 .httpBasic(withDefaults());
 
@@ -48,6 +48,6 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();  // Use BCrypt password encoding
+        return new BCryptPasswordEncoder();
     }
 }

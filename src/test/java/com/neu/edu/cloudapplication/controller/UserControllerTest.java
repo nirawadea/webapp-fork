@@ -49,16 +49,41 @@ public class UserControllerTest {
         user.setFirstName("John");
         user.setLastName("Doe");
 
-        // Mock the current HTTP request for query parameter checking
+
         when(httpServletRequest.getRequestURI()).thenReturn("/v1/user/createUser");
         when(httpServletRequest.getQueryString()).thenReturn(null);
         ServletRequestAttributes attributes = new ServletRequestAttributes(httpServletRequest);
         RequestContextHolder.setRequestAttributes(attributes);
 
-        // Mock the SecurityContextHolder to provide the authenticated email
+
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
     }
+
+    @Test
+    public void createUser_ShouldReturnBadRequest_WhenUsernameIsNotEmail() {
+        // Set invalid email (non-email format)
+        user.setEmail("invalidusername");
+
+        ResponseEntity<String> response = userController.createUser(user);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Username must be a valid email address.", response.getBody());
+    }
+
+    @Test
+    public void createUser_ShouldReturnCreated_WhenUsernameIsEmail() {
+        user.setEmail("valid.email@example.com");
+
+
+        when(userService.createUser(any(User.class))).thenReturn(user);
+
+        ResponseEntity<String> response = userController.createUser(user);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals("User created successfully", response.getBody());
+    }
+
 
     @Test
     public void createUser_ShouldReturnCreated_WhenUserCreatedSuccessfully() {
@@ -84,10 +109,10 @@ public class UserControllerTest {
 
     @Test
     public void updateUser_ShouldReturnNoContent_WhenUserUpdatedSuccessfully() {
-        // Mock the authenticated email
+
         when(authentication.getName()).thenReturn("test@example.com");
 
-        // Mock successful update without any response body (204 No Content)
+
         when(userService.updateUser(any(User.class), anyString())).thenReturn(user);
 
         ResponseEntity<?> response = userController.updateUser(user);
@@ -100,7 +125,7 @@ public class UserControllerTest {
         // Mock the authenticated email
         when(authentication.getName()).thenReturn("test@example.com");
 
-        // Set a different email in the user object
+
         user.setEmail("mismatch@example.com");
 
         ResponseEntity<?> response = userController.updateUser(user);
