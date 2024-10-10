@@ -13,7 +13,7 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_DATABASE: webapp
+          MYSQL_DATABASE: ${{ secrets.DATABASE_NAME }}
           MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }} # Use secrets for security
         ports:
           - 3306:3306
@@ -48,8 +48,8 @@ jobs:
 
       - name: Build with Maven
         env:
-          DATABASE_NAME: webapp
-          DB_USERNAME: root
+          DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DATABASE_ENDPOINT: 127.0.0.1  # MySQL is running on localhost
+          DATABASE_ENDPOINT: 127.0.0.1
         run: mvn clean install
