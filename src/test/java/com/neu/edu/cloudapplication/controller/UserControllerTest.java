@@ -68,7 +68,7 @@ public class UserControllerTest {
         ResponseEntity<String> response = userController.createUser(user);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Username must be a valid email address.", response.getBody());
+        assertEquals("This Email is not valid!!!", response.getBody());
     }
 
     @Test
