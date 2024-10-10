@@ -1,0 +1,55 @@
+name: webapp workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_and_test_java_app:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: webapp
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }} # Use secrets for security
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v1
+        with:
+          java-version: 17
+
+      - name: Set up Maven
+        run: sudo apt-get install -y maven
+
+      # Optional: wait for MySQL to be healthy
+      - name: Wait for MySQL to be ready
+        run: |
+          for i in {30..0}; do
+            if mysqladmin ping -h 127.0.0.1 --silent; then
+              break
+            fi
+            echo 'Waiting for MySQL...'
+            sleep 1
+          done
+          if [ "$i" = 0 ]; then
+            echo 'MySQL did not become ready in time' >&2
+            exit 1
+          fi
+
+      - name: Build with Maven
+        env:
+          DATABASE_NAME: webapp
+          DB_USERNAME: root
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DATABASE_ENDPOINT: 127.0.0.1  # MySQL is running on localhost
+        run: mvn clean install
