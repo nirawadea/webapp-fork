@@ -8,6 +8,15 @@ on:
 jobs:
   build_and_test_java_app:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: webapp
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
       - name: Checkout repository
@@ -21,5 +30,17 @@ jobs:
       - name: Set up Maven
         run: sudo apt-get install -y maven
 
+      - name: Wait for MySQL to be ready
+        run: |
+          while ! mysqladmin ping --host=127.0.0.1 --port=3306 --silent; do
+            echo "Waiting for MySQL to be ready..."
+            sleep 3
+          done
+
       - name: Build with Maven
-        run: mvn clean
+        env:
+          DATABASE_NAME: webapp
+          DATABASE_USERNAME: ${{ secrets.DB_USERNAME }}
+          DATABASE_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DATABASE_ENDPOINT: 127.0.0.1
+        run: mvn clean install
