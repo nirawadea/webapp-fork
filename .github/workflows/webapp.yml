@@ -9,6 +9,22 @@ jobs:
   build_and_test_java_app:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MYSQL_DATABASE: webapp
+          MYSQL_USER: ${{ secrets.DB_USERNAME }}
+          MYSQL_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        options: >
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        ports:
+          - 3306:3306
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,14 +37,20 @@ jobs:
       - name: Set up Maven
         run: sudo apt-get install -y maven
 
-      - name: Set up environment variables
+      - name: Wait for MySQL to be ready
         run: |
-          echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> $GITHUB_ENV
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
+          for i in {1..10}; do
+            if mysqladmin ping -h"localhost" --silent; then
+              echo "MySQL is ready";
+              break;
+            fi
+            echo "Waiting for MySQL... $i";
+            sleep 5;
+          done
 
       - name: Build with Maven
         run: mvn clean install
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-
+          DB_URL: ${{ secrets.DB_URL }}
