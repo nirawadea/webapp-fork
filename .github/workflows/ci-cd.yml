@@ -78,11 +78,11 @@ jobs:
 
       - name: Build AMI with Packer
         run: |
-          packer init aws-ubuntu.pkr.hcl
+          packer init packer/aws-ubuntu.pkr.hcl
           packer build \
             -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
             -var "DATABASE_ENDPOINT=${{ secrets.DATABASE_ENDPOINT }}" \
             -var "DATABASE_NAME=${{ secrets.DATABASE_NAME }}" \
             -var "DB_USERNAME=${{ secrets.DB_USERNAME }}" \
             -var "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
-            aws-ubuntu.pkr.hcl
+            packer/aws-ubuntu.pkr.hcl
