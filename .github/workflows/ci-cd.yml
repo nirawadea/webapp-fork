@@ -70,7 +70,7 @@ jobs:
           sudo apt-get update && sudo apt-get install packer
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.IAM_USER_ACCESS_KEY_ID}}
           aws-secret-access-key: ${{ secrets.IAM_USER_SECRET_KEY }}
