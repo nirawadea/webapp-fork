@@ -40,6 +40,32 @@ variable "subnet_id" {
   default = "subnet-0a01bdb10231d7228"
 }
 
+variable "artifact_path" {
+  type    = string
+  description = "Path to the application artifact"
+}
+
+variable "DATABASE_ENDPOINT" {
+  type    = string
+  description = "Database endpoint"
+}
+
+variable "DATABASE_NAME" {
+  type    = string
+  description = "Database name"
+}
+
+variable "DB_USERNAME" {
+  type    = string
+  description = "Database username"
+}
+
+variable "DB_PASSWORD" {
+  type    = string
+  description = "Database password"
+}
+
+
 packer {
   required_plugins {
     amazon = {
