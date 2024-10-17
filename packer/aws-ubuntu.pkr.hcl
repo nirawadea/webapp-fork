@@ -89,26 +89,23 @@ source "amazon-ebs" "ubuntu" {
 }
 
 build {
-  name = "packer-build"
-  sources = [
-    "source.amazon-ebs.ubuntu"
-  ]
+  name    = "packer-build"
+  sources = ["source.amazon-ebs.ubuntu"]
 
-  #Upload the application JAR file to the /tmp
+  # Upload the application JAR file to the /tmp
   provisioner "file" {
     source      = "CloudApplication-0.0.1-SNAPSHOT.jar"
     destination = "/tmp/"
   }
 
-  #Upload the service file to /tmp
+  # Upload the service file to /tmp
   provisioner "file" {
     source      = "packer/csye6225.service"
     destination = "/tmp/"
   }
 
-  #Run your setup script
+  # Run your setup script
   provisioner "shell" {
     script = "packer/setup.sh"
   }
-
 }
