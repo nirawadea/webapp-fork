@@ -108,7 +108,7 @@ build {
     provisioner "shell" {
        inline = [
          "if [ -d /tmp ]; then echo '/tmp directory exists.'; else echo '/tmp directory does not exist!'; exit 1; fi",
-         "if [ -w /tmp ]; then echo '/tmp directory is writable.'; else echo '/tmp directory is not writable!'; exit 1; fi"
+         "if [ -w /tmp ]; then echo '/tmp directory is writable.'; else echo '/tmp directory is not writable!'; exit 1; fi",
          "if [ -f /tmp/csye6225.service ]; then echo 'Service file exists'; else echo 'Service file is missing'; exit 1; fi",
          "chmod 644 /tmp/csye6225.service"
        ]
