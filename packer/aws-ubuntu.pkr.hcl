@@ -94,23 +94,15 @@ build {
     "source.amazon-ebs.ubuntu"
   ]
 
-  # Step 1: Run your setup script
-  provisioner "shell" {
-    script = "packer/setup.sh"
-  }
-
-  # Step 2: Create /tmp and ensure it's writable
-  provisioner "shell" {
-    inline = [
-      "mkdir -p /tmp",
-      "chmod 1777 /tmp"
-    ]
-  }
-
   # Step 3: Upload the service file to /tmp
   provisioner "file" {
      source      = "packer/csye6225.service"
      destination = "/tmp/"
+  }
+
+  # Step 1: Run your setup script
+  provisioner "shell" {
+    script = "packer/setup.sh"
   }
 
   # Step 4: Validate and set permissions for the service file
