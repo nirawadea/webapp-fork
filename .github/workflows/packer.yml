@@ -21,6 +21,13 @@ jobs:
         run: |
           packer init packer/aws-ubuntu.pkr.hcl
 
+      # Download the build artifact
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifact
+          path: artifacts/
+
       # Run Packer fmt to check formatting issues
       - name: Run Packer fmt check
         run: |
@@ -39,7 +46,7 @@ jobs:
             packer/aws-ubuntu.pkr.hcl
         continue-on-error: false  # Fails if template is invalid
 
-      # Fail the workflow if packer fmt modifies any files
+      # Fail the workflow if packer fmt modified any files
       - name: Fail workflow if packer fmt modified any files
         run: |
           git diff --exit-code || exit 1
