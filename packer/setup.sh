@@ -67,7 +67,7 @@ echo "MySQL setup complete!"
 sudo mv /tmp/csye6225.service /etc/systemd/system/
 
 # Set ownership of the application artifact to the non-login user 'csye6225'
-sudo chown -R csye6225:csye6225 /opt/CloudApplication-0.0.1-SNAPSHOT.jar
+#sudo chown -R csye6225:csye6225 /opt/CloudApplication-0.0.1-SNAPSHOT.jar
 
 # Reload systemd to pick up new service
 sudo systemctl daemon-reload
