@@ -96,8 +96,8 @@ build {
 
   #Upload the application JAR file to the /tmp
   provisioner "file" {
-     source      = "CloudApplication-0.0.1-SNAPSHOT.jar"
-     destination = "/tmp/"
+    source      = "CloudApplication-0.0.1-SNAPSHOT.jar"
+    destination = "/tmp/"
   }
 
   #Upload the service file to /tmp
