@@ -94,6 +94,12 @@ build {
     "source.amazon-ebs.ubuntu"
   ]
 
+  # Upload the application JAR file to the /opt directory
+    provisioner "file" {
+      source      = "target/CloudApplication-0.0.1-SNAPSHOT.jar"
+      destination = "/opt/CloudApplication-0.0.1-SNAPSHOT.jar"
+    }
+
   #Upload the service file to /tmp
   provisioner "file" {
     source      = "packer/csye6225.service"
