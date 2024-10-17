@@ -27,10 +27,15 @@ jobs:
         run: |
           mvn clean install
 
-      # Step 4: Package the application into a JAR/WAR
-      - name: Package Application (mvn clean package)
+      # Step 4: Verify the JAR file exists
+      - name: Check if JAR file exists
         run: |
-          mvn clean package
+          if [ ! -f target/CloudApplication-0.0.1-SNAPSHOT.jar ]; then
+            echo "JAR file not found! Build may have failed."
+            exit 1
+          else
+            echo "JAR file exists."
+          fi
 
       # Step 5: Archive the build artifact in a separate folder
       - name: Archive Build Artifact
