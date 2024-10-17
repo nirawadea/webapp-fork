@@ -16,6 +16,11 @@ jobs:
       - name: Set up HashiCorp Packer
         uses: hashicorp/setup-packer@v2
 
+      # Initialize Packer plugins
+      - name: Initialize Packer Plugins
+        run: |
+          packer init packer/aws-ubuntu.pkr.hcl
+
       # Run Packer fmt to check formatting issues
       - name: Run Packer fmt check
         run: |
