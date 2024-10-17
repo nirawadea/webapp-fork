@@ -65,7 +65,6 @@ variable "DB_PASSWORD" {
   description = "Database password"
 }
 
-
 packer {
   required_plugins {
     amazon = {
@@ -82,10 +81,9 @@ source "amazon-ebs" "ubuntu" {
   region                      = var.region
   associate_public_ip_address = true
   source_ami                  = var.source_ami
-  ssh_username = var.ssh_username
+  ssh_username                = var.ssh_username
 
-
- # Specify the VPC and Subnet 
+  # Specify the VPC and Subnet
   vpc_id                      = var.vpc_id
   subnet_id                   = var.subnet_id
 }
@@ -96,30 +94,32 @@ build {
     "source.amazon-ebs.ubuntu"
   ]
 
-    provisioner "shell" {
-      script = "packer/setup.sh"
-    }
+  # Step 1: Run your setup script
+  provisioner "shell" {
+    script = "packer/setup.sh"
+  }
 
-    provisioner "file" {
-       source      = "packer/csye6225.service"
-       destination = "/tmp/"
-    }
+  # Step 2: Create /tmp and ensure it's writable
+  provisioner "shell" {
+    inline = [
+      "mkdir -p /tmp",
+      "chmod 1777 /tmp"
+    ]
+  }
 
-    provisioner "shell" {
-       inline = [
-         "if [ -d /tmp ]; then echo '/tmp directory exists.'; else echo '/tmp directory does not exist!'; exit 1; fi",
-         "if [ -w /tmp ]; then echo '/tmp directory is writable.'; else echo '/tmp directory is not writable!'; exit 1; fi",
-         "if [ -f /tmp/csye6225.service ]; then echo 'Service file exists'; else echo 'Service file is missing'; exit 1; fi",
-         "chmod 644 /tmp/csye6225.service"
-       ]
-    }
+  # Step 3: Upload the service file to /tmp
+  provisioner "file" {
+     source      = "packer/csye6225.service"
+     destination = "/tmp/"
+  }
 
-    provisioner "shell" {
-      inline = [
-        "mkdir -p /tmp",
-        "chmod 1777 /tmp"
-      ]
-    }
-
-
+  # Step 4: Validate and set permissions for the service file
+  provisioner "shell" {
+     inline = [
+       "if [ -d /tmp ]; then echo '/tmp directory exists.'; else echo '/tmp directory does not exist!'; exit 1; fi",
+       "if [ -w /tmp ]; then echo '/tmp directory is writable.'; else echo '/tmp directory is not writable!'; exit 1; fi",
+       "if [ -f /tmp/csye6225.service ]; then echo 'Service file exists'; else echo 'Service file is missing'; exit 1; fi",
+       "chmod 644 /tmp/csye6225.service"
+     ]
+  }
 }
