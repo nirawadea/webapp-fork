@@ -67,11 +67,14 @@ sudo mv /tmp/csye6225.service /etc/systemd/system/
 # Creating a no-login user
 echo "Creating a no-login user 'csye6225'..."
 sudo adduser csye6225 --shell /usr/sbin/nologin
-# Set ownership of the application artifact to the non-login user 'csye6225'
-sudo mkdir -p / opt/cloudApp
-sudo mv /tmp/CloudApplication-0.0.1-SNAPSHOT.jar /opt/cloudApp
+# Ensure /opt/cloudApp directory exists and set permissions
+sudo mkdir -p /opt/cloudApp
+
+# Move the application JAR file and set ownership
+sudo mv /tmp/CloudApplication-0.0.1-SNAPSHOT.jar /opt/cloudApp/
 sudo chown -R csye6225:csye6225 /opt/cloudApp
 sudo chmod 755 /opt/cloudApp/CloudApplication-0.0.1-SNAPSHOT.jar
+
 
 # Reload systemd to pick up new service
 sudo systemctl daemon-reload
