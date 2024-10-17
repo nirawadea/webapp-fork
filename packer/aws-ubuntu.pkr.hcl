@@ -114,4 +114,12 @@ build {
        ]
     }
 
+    provisioner "shell" {
+      inline = [
+        "mkdir -p /tmp",
+        "chmod 1777 /tmp"
+      ]
+    }
+
+
 }
