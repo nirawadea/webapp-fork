@@ -2,13 +2,12 @@ name: CI/CD Workflow
 
 on:
   pull_request:
+    types: [closed]  # Trigger only when a PR is closed (merged or not)
     branches: [main]
-  push:
-    branches: [main]
-
 
 jobs:
   test_and_build:
+    if: github.event.pull_request.merged == true  # Run only if the PR was merged
     name: Run Tests and Build Artifact
     runs-on: ubuntu-latest
 
