@@ -96,16 +96,12 @@ build {
     "source.amazon-ebs.ubuntu"
   ]
 
-    provisioner "shell"{
-      scripts = [
-        "setup.sh"
-      ]
+    provisioner "shell" {
+      script = "packer/setup.sh"
     }
 
-    provisioner "file"{
-      source = ["csye6225.service"]
+    provisioner "file" {
+      source      = "packer/csye6225.service"
       destination = "/tmp/"
     }
-
-
 }
