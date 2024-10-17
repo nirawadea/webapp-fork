@@ -101,8 +101,14 @@ build {
     }
 
     provisioner "file" {
-      source      = "packer/csye6225.service"
-      destination = "/tmp/"
+       source      = "${path.root}/csye6225.service"
+       destination = "/tmp/"
+    }
+
+    provisioner "shell" {
+       inline = [
+         "if [ -f /tmp/csye6225.service ]; then echo 'Service file exists'; else echo 'Service file is missing'; exit 1; fi"
+       ]
     }
 
 
