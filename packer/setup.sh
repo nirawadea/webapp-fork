@@ -69,3 +69,5 @@ sudo mv /tmp/csye6225.service /etc/systemd/system/
 # Reload systemd to pick up new service
 sudo systemctl daemon-reload
 sudo systemctl enable csye6225.service
+sudo systemctl start csye6225.service
+sudo systemctl status csye6225.service
