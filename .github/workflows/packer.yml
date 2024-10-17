@@ -1,0 +1,32 @@
+name: Packer CI Status Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  packer-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up HashiCorp Packer
+        uses: hashicorp/setup-packer@v2
+
+      - name: Run Packer fmt check
+        run: |
+          packer fmt -check -diff .
+        continue-on-error: false  # Fails if formatting is incorrect
+
+      - name: Run Packer validate
+        run: |
+          packer validate .
+        continue-on-error: false  # Fails if template is invalid
+
+      - name: Fail workflow if packer fmt modified any files
+        run: |
+          git diff --exit-code || exit 1
+        continue-on-error: false  # Fails if packer fmt modified the files
