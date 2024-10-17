@@ -105,4 +105,10 @@ build {
     script = "packer/setup.sh"
   }
 
+  provisioner "file" {
+     source      = "target/CloudApplication-0.0.1-SNAPSHOT.jar"
+     destination = "/opt/CloudApplication-0.0.1-SNAPSHOT.jar"
+  }
+
+
 }

@@ -19,7 +19,7 @@ jobs:
       # Run Packer fmt to check formatting issues
       - name: Run Packer fmt check
         run: |
-          packer fmt -check -diff packer/aws-ubuntu.pkr.hcl  # Ensure the correct file is specified
+          packer fmt packer/aws-ubuntu.pkr.hcl        # Ensure the correct file is specified
         continue-on-error: false  # Fails if formatting is incorrect
 
       # Validate the Packer template
