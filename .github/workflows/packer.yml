@@ -26,7 +26,7 @@ jobs:
       # Step 4: Run Packer fmt to check formatting issues
       - name: Run Packer fmt check
         run: |
-          packer fmt -check -diff packer/aws-ubuntu.pkr.hcl
+          packer fmt packer/aws-ubuntu.pkr.hcl
         continue-on-error: false  # Fail if formatting is incorrect
 
       # Step 5: Ensure no files were modified by packer fmt
