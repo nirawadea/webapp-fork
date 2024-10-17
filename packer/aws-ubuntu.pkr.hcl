@@ -101,15 +101,17 @@ build {
     }
 
     provisioner "file" {
-       source      = "${path.root}/csye6225.service"
+       source      = "/Users/macbookpro/Desktop/webapp-fork/webapp-fork/packer/csye6225.service"
        destination = "/tmp/"
     }
 
     provisioner "shell" {
        inline = [
-         "if [ -f /tmp/csye6225.service ]; then echo 'Service file exists'; else echo 'Service file is missing'; exit 1; fi"
+         "if [ -d /tmp ]; then echo '/tmp directory exists.'; else echo '/tmp directory does not exist!'; exit 1; fi",
+         "if [ -w /tmp ]; then echo '/tmp directory is writable.'; else echo '/tmp directory is not writable!'; exit 1; fi"
+         "if [ -f /tmp/csye6225.service ]; then echo 'Service file exists'; else echo 'Service file is missing'; exit 1; fi",
+         "chmod 644 /tmp/csye6225.service"
        ]
     }
-
 
 }
