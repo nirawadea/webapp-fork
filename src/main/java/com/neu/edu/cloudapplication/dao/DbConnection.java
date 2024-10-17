@@ -16,6 +16,7 @@ public class DbConnection {
     @Value(("${spring.datasource.password}"))
     private String password;
 
+
     public DataSource createConnection() {
         return DataSourceBuilder.create().url(host).username(username).password(password).build();
     }
