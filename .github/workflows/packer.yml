@@ -1,0 +1,78 @@
+name: Packer CI Status Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  packer-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository code
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      # Step 2: Set up JDK 17 (Java 17 environment) for Maven build
+      - name: Set up JDK 17
+        uses: actions/setup-java@v1
+        with:
+          java-version: '17'
+
+      # Step 3: Run tests and ensure the build is successful
+      - name: Run Tests (mvn clean install)
+        run: |
+          mvn clean install
+
+      # Step 4: Package the application into a JAR/WAR
+      - name: Package Application (mvn clean package)
+        run: |
+          mvn clean package
+
+      # Step 5: Archive the build artifact in a separate folder
+      - name: Archive Build Artifact
+        run: mkdir -p artifacts
+
+      # Step 6: Copy the JAR/WAR file to the artifacts directory
+      - name: Copy Build Artifact
+        run: cp target/CloudApplication-0.0.1-SNAPSHOT.jar artifacts/
+
+      # Step 7: Upload the build artifact (JAR/WAR) so it can be used in subsequent jobs
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifact
+          path: artifacts/
+
+      # Step 8: Set up HashiCorp Packer
+      - name: Set up HashiCorp Packer
+        uses: hashicorp/setup-packer@v2
+
+      # Step 9: Initialize Packer Plugins
+      - name: Initialize Packer Plugins
+        run: |
+          packer init packer/aws-ubuntu.pkr.hcl
+
+      # Step 10: Run Packer fmt to check formatting issues
+      - name: Run Packer fmt check
+        run: |
+          packer fmt packer/aws-ubuntu.pkr.hcl
+        continue-on-error: false  # Fail if formatting is incorrect
+
+      # Step 11: Ensure no files were modified by packer fmt
+      - name: Fail workflow if packer fmt modified any files
+        run: |
+          git diff --exit-code || exit 1  # Fail if any file is modified
+
+      # Step 12: Validate the Packer template
+      - name: Run Packer validate
+        run: |
+          packer validate \
+            -var "DATABASE_ENDPOINT=${{ secrets.DATABASE_ENDPOINT }}" \
+            -var "DATABASE_NAME=${{ secrets.DATABASE_NAME }}" \
+            -var "DB_USERNAME=${{ secrets.DB_USERNAME }}" \
+            -var "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
+            -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
+            packer/aws-ubuntu.pkr.hcl
+        continue-on-error: false  # Fail if validation fails

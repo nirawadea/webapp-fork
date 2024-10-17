@@ -29,39 +29,39 @@ variable "ssh_username" {
 }
 
 variable "vpc_id" {
-  type    = string
+  type        = string
   description = "The VPC where the Packer build will happen"
-  default = "vpc-0f88c8ec4e16ba62e"
+  default     = "vpc-0f88c8ec4e16ba62e"
 }
 
 variable "subnet_id" {
-  type    = string
+  type        = string
   description = "The subnet within the VPC where the Packer build will happen"
-  default = "subnet-0a01bdb10231d7228"
+  default     = "subnet-0a01bdb10231d7228"
 }
 
 variable "artifact_path" {
-  type    = string
+  type        = string
   description = "Path to the application artifact"
 }
 
 variable "DATABASE_ENDPOINT" {
-  type    = string
+  type        = string
   description = "Database endpoint"
 }
 
 variable "DATABASE_NAME" {
-  type    = string
+  type        = string
   description = "Database name"
 }
 
 variable "DB_USERNAME" {
-  type    = string
+  type        = string
   description = "Database username"
 }
 
 variable "DB_PASSWORD" {
-  type    = string
+  type        = string
   description = "Database password"
 }
 
@@ -84,8 +84,8 @@ source "amazon-ebs" "ubuntu" {
   ssh_username                = var.ssh_username
 
   # Specify the VPC and Subnet
-  vpc_id                      = var.vpc_id
-  subnet_id                   = var.subnet_id
+  vpc_id    = var.vpc_id
+  subnet_id = var.subnet_id
 }
 
 build {
@@ -96,13 +96,19 @@ build {
 
   #Upload the service file to /tmp
   provisioner "file" {
-     source      = "packer/csye6225.service"
-     destination = "/tmp/"
+    source      = "packer/csye6225.service"
+    destination = "/tmp/"
   }
 
   #Run your setup script
   provisioner "shell" {
     script = "packer/setup.sh"
   }
+
+  provisioner "file" {
+    source      = "target/CloudApplication-0.0.1-SNAPSHOT.jar"
+    destination = "/opt/CloudApplication-0.0.1-SNAPSHOT.jar"
+  }
+
 
 }
