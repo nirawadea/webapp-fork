@@ -63,6 +63,19 @@ jobs:
           name: build-artifact
           path: artifacts/
 
+      - name: Check File Existence
+        run: |
+          if [ -f packer/csye6225.service ]; then
+            echo "csye6225.service file exists."
+          else
+            echo "csye6225.service file is missing."
+          exit 1
+          fi
+
+      - name: Set Permissions for Service File
+        run: |
+          chmod 644 packer/csye6225.service
+
       - name: Install Packer
         run: |
           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -

@@ -101,7 +101,9 @@ build {
     }
 
     provisioner "file" {
-      source      = "packer/csye6225.service"
+      source      = "${path.root}/packer/csye6225.service"
       destination = "/tmp/"
     }
+
+
 }
