@@ -10,44 +10,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      # Step 1: Check out the repository code
+      - name: Checkout Code
+        uses: actions/checkout@v2
 
+      # Step 2: Set up HashiCorp Packer
       - name: Set up HashiCorp Packer
         uses: hashicorp/setup-packer@v2
 
-      # Initialize Packer plugins
+      # Step 3: Initialize Packer Plugins
       - name: Initialize Packer Plugins
         run: |
           packer init packer/aws-ubuntu.pkr.hcl
 
-      # Download the build artifact
-      - name: Download Build Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: build-artifact
-          path: artifacts/
-
-      # Run Packer fmt to check formatting issues
+      # Step 4: Run Packer fmt to check formatting issues
       - name: Run Packer fmt check
         run: |
-          packer fmt packer/aws-ubuntu.pkr.hcl        # Ensure the correct file is specified
-        continue-on-error: false  # Fails if formatting is incorrect
+          packer fmt -check -diff packer/aws-ubuntu.pkr.hcl
+        continue-on-error: false  # Fail if formatting is incorrect
 
-      # Validate the Packer template
+      # Step 5: Ensure no files were modified by packer fmt
+      - name: Fail workflow if packer fmt modified any files
+        run: |
+          git diff --exit-code || exit 1  # Fail if any file is modified
+
+      # Step 6: Validate the Packer template
       - name: Run Packer validate
         run: |
           packer validate \
-            -var "DB_USERNAME=${{ secrets.DB_USERNAME }}" \
             -var "DATABASE_ENDPOINT=${{ secrets.DATABASE_ENDPOINT }}" \
             -var "DATABASE_NAME=${{ secrets.DATABASE_NAME }}" \
+            -var "DB_USERNAME=${{ secrets.DB_USERNAME }}" \
             -var "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
             -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
             packer/aws-ubuntu.pkr.hcl
-        continue-on-error: false  # Fails if template is invalid
-
-      # Fail the workflow if packer fmt modified any files
-      - name: Fail workflow if packer fmt modified any files
-        run: |
-          git diff --exit-code || exit 1
-        continue-on-error: false  # Fails if packer fmt modified the files
+        continue-on-error: false  # Fail if validation fails
