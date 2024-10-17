@@ -16,16 +16,19 @@ jobs:
       - name: Set up HashiCorp Packer
         uses: hashicorp/setup-packer@v2
 
+      # Run Packer fmt to check formatting issues
       - name: Run Packer fmt check
         run: |
-          packer fmt -check -diff .
+          packer fmt -check -diff ./aws-ubuntu.pkr.hcl  # Ensure the correct file is specified
         continue-on-error: false  # Fails if formatting is incorrect
 
+      # Validate the Packer template
       - name: Run Packer validate
         run: |
-          packer validate .
+          packer validate ./aws-ubuntu.pkr.hcl   # Ensure the correct file is specified
         continue-on-error: false  # Fails if template is invalid
 
+      # Fail the workflow if packer fmt modifies any files
       - name: Fail workflow if packer fmt modified any files
         run: |
           git diff --exit-code || exit 1
