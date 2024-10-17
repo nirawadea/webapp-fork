@@ -65,6 +65,12 @@ variable "DB_PASSWORD" {
   description = "Database password"
 }
 
+variable "artifact_path" {
+  type        = string
+  default     = "target/CloudApplication-0.0.1-SNAPSHOT.jar"
+  description = "Path to the Spring Boot WAR file"
+}
+
 packer {
   required_plugins {
     amazon = {
@@ -94,7 +100,7 @@ build {
 
   # Upload the application JAR file to the /tmp
   provisioner "file" {
-    source      = "target/CloudApplication-0.0.1-SNAPSHOT.jar"
+    source      = var.artifact_path
     destination = "/tmp/"
   }
 
