@@ -30,7 +30,13 @@ jobs:
       # Validate the Packer template
       - name: Run Packer validate
         run: |
-          packer validate packer/aws-ubuntu.pkr.hcl   # Ensure the correct file is specified
+          packer validate \
+            -var "DB_USERNAME=${{ secrets.DB_USERNAME }}" \
+            -var "DATABASE_ENDPOINT=${{ secrets.DATABASE_ENDPOINT }}" \
+            -var "DATABASE_NAME=${{ secrets.DATABASE_NAME }}" \
+            -var "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
+            -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
+            packer/aws-ubuntu.pkr.hcl
         continue-on-error: false  # Fails if template is invalid
 
       # Fail the workflow if packer fmt modifies any files
