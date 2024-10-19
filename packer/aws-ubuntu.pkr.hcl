@@ -40,11 +40,6 @@ variable "subnet_id" {
   default     = "subnet-0a01bdb10231d7228"
 }
 
-variable "artifact_path" {
-  type        = string
-  description = "Path to the application artifact"
-}
-
 variable "DATABASE_ENDPOINT" {
   type        = string
   description = "Database endpoint"
