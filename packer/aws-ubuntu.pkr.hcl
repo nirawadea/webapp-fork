@@ -40,11 +40,6 @@ variable "subnet_id" {
   default     = "subnet-0a01bdb10231d7228"
 }
 
-variable "artifact_path" {
-  type        = string
-  description = "Path to the application artifact"
-}
-
 variable "DATABASE_ENDPOINT" {
   type        = string
   description = "Database endpoint"
@@ -63,6 +58,12 @@ variable "DB_USERNAME" {
 variable "DB_PASSWORD" {
   type        = string
   description = "Database password"
+}
+
+variable "artifact_path" {
+  type        = string
+  default     = "target/CloudApplication-0.0.1-SNAPSHOT.jar"
+  description = "Path to the Spring Boot WAR file"
 }
 
 packer {
@@ -89,20 +90,23 @@ source "amazon-ebs" "ubuntu" {
 }
 
 build {
-  name = "packer-build"
-  sources = [
-    "source.amazon-ebs.ubuntu"
-  ]
+  name    = "packer-build"
+  sources = ["source.amazon-ebs.ubuntu"]
 
-  #Upload the service file to /tmp
+  # Upload the application JAR file to the /tmp
+  provisioner "file" {
+    source      = var.artifact_path
+    destination = "/tmp/"
+  }
+
+  # Upload the service file to /tmp
   provisioner "file" {
     source      = "packer/csye6225.service"
     destination = "/tmp/"
   }
 
-  #Run your setup script
+  # Run your setup script
   provisioner "shell" {
     script = "packer/setup.sh"
   }
-
 }

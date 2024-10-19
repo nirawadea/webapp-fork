@@ -17,9 +17,7 @@ sudo apt-get install -y openjdk-17-jdk
 echo "Installing Maven..."
 sudo apt-get install -y maven
 
-# Creating a no-login user
-echo "Creating a no-login user 'csye6225'..."
-sudo adduser csye6225 --shell /usr/sbin/nologin
+
 
 # Verify Java installation
 echo "Verifying Java installation..."
@@ -66,11 +64,21 @@ echo "MySQL setup complete!"
 # Move service file to systemd folder
 sudo mv /tmp/csye6225.service /etc/systemd/system/
 
-# Set ownership of the application artifact to the non-login user 'csye6225'
-#sudo chown -R csye6225:csye6225 /opt/CloudApplication-0.0.1-SNAPSHOT.jar
+# Creating a no-login user
+echo "Creating a no-login user 'csye6225'..."
+sudo adduser csye6225 --shell /usr/sbin/nologin
+# Ensure /opt/cloudApp directory exists and set permissions
+sudo mkdir -p /opt/cloudApp
+
+# Move the application JAR file and set ownership
+sudo mv /tmp/CloudApplication-0.0.1-SNAPSHOT.jar /opt/cloudApp/
+sudo chown -R csye6225:csye6225 /opt/cloudApp
+sudo chmod 755 /opt/cloudApp/CloudApplication-0.0.1-SNAPSHOT.jar
+
 
 # Reload systemd to pick up new service
 sudo systemctl daemon-reload
 sudo systemctl enable csye6225.service
 sudo systemctl start csye6225.service
 sudo systemctl status csye6225.service
+
