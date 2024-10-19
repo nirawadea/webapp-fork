@@ -17,8 +17,6 @@ sudo apt-get install -y openjdk-17-jdk
 echo "Installing Maven..."
 sudo apt-get install -y maven
 
-
-
 # Verify Java installation
 echo "Verifying Java installation..."
 java -version
@@ -49,7 +47,6 @@ FLUSH PRIVILEGES;
 EOF
 fi
 
-
 # Create database 'webapp'
 echo "Creating database 'webapp'..."
 sudo mysql -u root <<EOF
@@ -64,9 +61,10 @@ echo "MySQL setup complete!"
 # Move service file to systemd folder
 sudo mv /tmp/csye6225.service /etc/systemd/system/
 
-# Creating a no-login user
+# Creating a no-login user (disabled-password)
 echo "Creating a no-login user 'csye6225'..."
-sudo adduser csye6225 --shell /usr/sbin/nologin
+sudo adduser --disabled-password --gecos "" --shell /usr/sbin/nologin csye6225
+
 # Ensure /opt/cloudApp directory exists and set permissions
 sudo mkdir -p /opt/cloudApp
 
@@ -75,10 +73,12 @@ sudo mv /tmp/CloudApplication-0.0.1-SNAPSHOT.jar /opt/cloudApp/
 sudo chown -R csye6225:csye6225 /opt/cloudApp
 sudo chmod 755 /opt/cloudApp/CloudApplication-0.0.1-SNAPSHOT.jar
 
+# Ensure the log file is writable by csye6225
+sudo touch /var/log/CloudApplication.log
+sudo chown csye6225:csye6225 /var/log/CloudApplication.log
 
 # Reload systemd to pick up new service
 sudo systemctl daemon-reload
 sudo systemctl enable csye6225.service
 sudo systemctl start csye6225.service
 sudo systemctl status csye6225.service
-
