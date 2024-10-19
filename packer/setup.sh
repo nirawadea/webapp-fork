@@ -5,6 +5,17 @@ set -e
 # Set non-interactive mode for apt installations
 export DEBIAN_FRONTEND=noninteractive
 
+# Ensure environment variables (DB credentials and other secrets) are set from GitHub Secrets
+DB_USERNAME=${DB_USERNAME:-}
+DB_PASSWORD=${DB_PASSWORD:-}
+DATABASE_NAME=${DATABASE_NAME:-}
+DATABASE_ENDPOINT=${DATABASE_ENDPOINT:-}
+
+if [[ -z "$DB_USERNAME" || -z "$DB_PASSWORD" || -z "$DATABASE_NAME" || -z "$DATABASE_ENDPOINT" ]]; then
+  echo "Error: One or more required environment variables are not set."
+  exit 1
+fi
+
 # Update the package index
 echo "Updating package index..."
 sudo apt-get update -y
@@ -34,23 +45,23 @@ user_exists=$(sudo mysql -u root -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHER
 if [ "$user_exists" == "1" ]; then
   echo "User 'root'@'localhost' already exists. Updating password and privileges..."
   sudo mysql -u root <<EOF
-ALTER USER 'root'@'localhost' IDENTIFIED BY 'Safari*@12345';
+ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 EOF
 else
   echo "Creating 'root'@'localhost' user..."
   sudo mysql -u root <<EOF
-CREATE USER 'root'@'localhost' IDENTIFIED BY 'Safari*@12345';
+CREATE USER 'root'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 EOF
 fi
 
-# Create database 'webapp'
-echo "Creating database 'webapp'..."
+# Create database
+echo "Creating database '${DATABASE_NAME}'..."
 sudo mysql -u root <<EOF
-CREATE DATABASE IF NOT EXISTS webapp;
+CREATE DATABASE IF NOT EXISTS ${DATABASE_NAME};
 EOF
 
 # Restart MySQL service to apply changes
@@ -76,6 +87,13 @@ sudo chmod 755 /opt/cloudApp/CloudApplication-0.0.1-SNAPSHOT.jar
 # Ensure the log file is writable by csye6225
 sudo touch /var/log/CloudApplication.log
 sudo chown csye6225:csye6225 /var/log/CloudApplication.log
+
+# Set environment variables in /etc/environment (update these with real values)
+echo "Setting environment variables..."
+echo "DATABASE_ENDPOINT=${DATABASE_ENDPOINT}" | sudo tee -a /etc/environment
+echo "DATABASE_NAME=${DATABASE_NAME}" | sudo tee -a /etc/environment
+echo "DB_USERNAME=${DB_USERNAME}" | sudo tee -a /etc/environment
+echo "DB_PASSWORD=${DB_PASSWORD}" | sudo tee -a /etc/environment
 
 # Reload systemd to pick up new service
 sudo systemctl daemon-reload
