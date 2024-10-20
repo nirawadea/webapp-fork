@@ -10,7 +10,7 @@ variable "ami_name_prefix" {
 
 variable "instance_type" {
   type    = string
-  default = "t2.micro"
+  default = "t3.medium"
 }
 
 variable "region" {
