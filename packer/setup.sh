@@ -38,35 +38,38 @@ echo "Verifying Java installation..."
 java -version
 
 # Install MySQL Server
+echo "Installing MySQL Server..."
 sudo apt-get install -y mysql-server
 
 # Start MySQL service and enable it to start on boot
+echo "Starting and enabling MySQL service..."
 sudo systemctl start mysql
 sudo systemctl enable mysql
 
 # Check if 'root'@'localhost' user exists
-user_exists=$(sudo mysql -u root -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = 'root' AND host = 'localhost');" | tail -n 1)
+echo "Checking if 'root'@'localhost' user exists..."
+user_exists_localhost=$(sudo mysql -u root -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = 'root' AND host = 'localhost');" | tail -n 1)
 
-if [ "$user_exists" == "1" ]; then
+# Handle 'root'@'localhost'
+if [ "$user_exists_localhost" == "1" ]; then
   echo "User 'root'@'localhost' already exists. Updating password and privileges..."
   sudo mysql -u root <<EOF
-ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '${DB_PASSWORD}';
-FLUSH PRIVILEGES;
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'%';
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${DB_PASSWORD}';
 FLUSH PRIVILEGES;
 EOF
 else
   echo "Creating 'root'@'localhost' user..."
   sudo mysql -u root <<EOF
-CREATE USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '${DB_PASSWORD}';
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'%';
+CREATE USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${DB_PASSWORD}';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 EOF
 fi
 
-# Create database
+
+# Create the application database
 echo "Creating database '${DATABASE_NAME}'..."
-sudo mysql -u root -p${DB_PASSWORD} <<EOF
+sudo mysql -u root -p"${DB_PASSWORD}" <<EOF
 CREATE DATABASE IF NOT EXISTS ${DATABASE_NAME};
 EOF
 
