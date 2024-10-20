@@ -11,6 +11,11 @@ DB_PASSWORD=${DB_PASSWORD:-}
 DATABASE_NAME=${DATABASE_NAME:-}
 DATABASE_ENDPOINT=${DATABASE_ENDPOINT:-}
 
+echo "DB_USERNAME: $DB_USERNAME"
+echo "DB_PASSWORD: $DB_PASSWORD"
+echo "DATABASE_NAME: $DATABASE_NAME"
+echo "DATABASE_ENDPOINT: $DATABASE_ENDPOINT"
+
 if [[ -z "$DB_USERNAME" || -z "$DB_PASSWORD" || -z "$DATABASE_NAME" || -z "$DATABASE_ENDPOINT" ]]; then
   echo "Error: One or more required environment variables are not set."
   exit 1
