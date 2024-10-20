@@ -50,22 +50,23 @@ user_exists=$(sudo mysql -u root -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHER
 if [ "$user_exists" == "1" ]; then
   echo "User 'root'@'localhost' already exists. Updating password and privileges..."
   sudo mysql -u root <<EOF
-ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
+ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '${DB_PASSWORD}';
+FLUSH PRIVILEGES;
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%';
 FLUSH PRIVILEGES;
 EOF
 else
   echo "Creating 'root'@'localhost' user..."
   sudo mysql -u root <<EOF
-CREATE USER 'root'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
+CREATE USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '${DB_PASSWORD}';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%';
 FLUSH PRIVILEGES;
 EOF
 fi
 
 # Create database
 echo "Creating database '${DATABASE_NAME}'..."
-sudo mysql -u root <<EOF
+sudo mysql -u root -p${DB_PASSWORD} <<EOF
 CREATE DATABASE IF NOT EXISTS ${DATABASE_NAME};
 EOF
 
