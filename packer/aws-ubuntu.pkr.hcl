@@ -108,11 +108,11 @@ build {
   # Run your setup script and pass environment variables
   provisioner "shell" {
     script = "packer/setup.sh"
-    environment_vars = [
-      "DB_USERNAME=${var.DB_USERNAME}",
-      "DB_PASSWORD=${var.DB_PASSWORD}",
-      "DATABASE_NAME=${var.DATABASE_NAME}",
-      "DATABASE_ENDPOINT=${var.DATABASE_ENDPOINT}"
-    ]
+#     environment_vars = [
+#       "DB_USERNAME=${var.DB_USERNAME}",
+#       "DB_PASSWORD=${var.DB_PASSWORD}",
+#       "DATABASE_NAME=${var.DATABASE_NAME}",
+#       "DATABASE_ENDPOINT=${var.DATABASE_ENDPOINT}"
+#     ]
   }
 }

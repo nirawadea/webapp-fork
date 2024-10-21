@@ -6,15 +6,15 @@ set -e
 export DEBIAN_FRONTEND=noninteractive
 
 # Ensure environment variables (DB credentials and other secrets) are set from GitHub Secrets or passed in
-DB_USERNAME=${DB_USERNAME:-}
-DB_PASSWORD=${DB_PASSWORD:-}
-DATABASE_NAME=${DATABASE_NAME:-}
-DATABASE_ENDPOINT=${DATABASE_ENDPOINT:-}
+#DB_USERNAME=${DB_USERNAME:-}
+#DB_PASSWORD=${DB_PASSWORD:-}
+#DATABASE_NAME=${DATABASE_NAME:-}
+#DATABASE_ENDPOINT=${DATABASE_ENDPOINT:-}
 
 # Log environment variables for debugging (hide DB_PASSWORD for security reasons)
-echo "DB_USERNAME: $DB_USERNAME"
-echo "DATABASE_NAME: $DATABASE_NAME"
-echo "DATABASE_ENDPOINT: $DATABASE_ENDPOINT"
+#echo "DB_USERNAME: $DB_USERNAME"
+#echo "DATABASE_NAME: $DATABASE_NAME"
+#echo "DATABASE_ENDPOINT: $DATABASE_ENDPOINT"
 
 # Ensure all required environment variables are set
 if [[ -z "$DB_USERNAME" || -z "$DB_PASSWORD" || -z "$DATABASE_NAME" || -z "$DATABASE_ENDPOINT" ]]; then
@@ -63,11 +63,11 @@ sudo touch /var/log/CloudApplication.log
 sudo chown csye6225:csye6225 /var/log/CloudApplication.log
 
 # Set environment variables in /etc/environment
-echo "Setting environment variables in /etc/environment..."
-echo "DATABASE_ENDPOINT=${DATABASE_ENDPOINT}" | sudo tee -a /etc/environment
-echo "DATABASE_NAME=${DATABASE_NAME}" | sudo tee -a /etc/environment
-echo "DB_USERNAME=${DB_USERNAME}" | sudo tee -a /etc/environment
-echo "DB_PASSWORD=${DB_PASSWORD}" | sudo tee -a /etc/environment
+#echo "Setting environment variables in /etc/environment..."
+#echo "DATABASE_ENDPOINT=${DATABASE_ENDPOINT}" | sudo tee -a /etc/environment
+#echo "DATABASE_NAME=${DATABASE_NAME}" | sudo tee -a /etc/environment
+#echo "DB_USERNAME=${DB_USERNAME}" | sudo tee -a /etc/environment
+#echo "DB_PASSWORD=${DB_PASSWORD}" | sudo tee -a /etc/environment
 
 # Move service file to systemd folder
 echo "Moving systemd service file..."
