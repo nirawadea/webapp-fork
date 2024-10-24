@@ -67,6 +67,7 @@ source "amazon-ebs" "ubuntu" {
   # Specify the VPC and Subnet
   vpc_id    = var.vpc_id
   subnet_id = var.subnet_id
+  ami_users = ["047719656602"]
 
 }
 
