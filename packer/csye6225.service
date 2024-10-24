@@ -5,8 +5,8 @@ After=network.target
 [Service]
 User=csye6225
 Group=csye6225
-EnvironmentFile=/etc/environment
-ExecStart=/bin/bash -c 'source /home/ubuntu/.env && /usr/bin/java -jar /opt/cloudApp/CloudApplication-0.0.1-SNAPSHOT.jar > /var/log/CloudApplication.log 2>&1'
+# Only source the .env file if it exists
+ExecStart=/bin/bash -c '[ -f /home/ubuntu/.env ] && source /home/ubuntu/.env && /usr/bin/java -jar /opt/cloudApp/CloudApplication-0.0.1-SNAPSHOT.jar > /var/log/CloudApplication.log 2>&1'
 Restart=always
 RestartSec=3
 StandardOutput=syslog

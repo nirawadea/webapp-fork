@@ -54,10 +54,10 @@ sudo systemctl daemon-reload
 # Enable and start the service
 echo "Enabling and starting the service..."
 sudo systemctl enable csye6225.service
-sudo systemctl start csye6225.service
+#sudo systemctl start csye6225.service
 
 # Check the status of the service
 echo "Checking service status..."
-sudo systemctl status csye6225.service
+#sudo systemctl status csye6225.service
 
 echo "Setup complete!"
