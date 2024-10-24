@@ -40,26 +40,6 @@ variable "subnet_id" {
   default     = "subnet-0a01bdb10231d7228"
 }
 
-variable "DATABASE_ENDPOINT" {
-  type        = string
-  description = "Database endpoint"
-}
-
-variable "DATABASE_NAME" {
-  type        = string
-  description = "Database name"
-}
-
-variable "DB_USERNAME" {
-  type        = string
-  description = "Database username"
-}
-
-variable "DB_PASSWORD" {
-  type        = string
-  description = "Database password"
-}
-
 variable "artifact_path" {
   type        = string
   default     = "target/CloudApplication-0.0.1-SNAPSHOT.jar"
@@ -88,6 +68,7 @@ source "amazon-ebs" "ubuntu" {
   vpc_id    = var.vpc_id
   subnet_id = var.subnet_id
   ami_users = ["047719656602"]
+
 }
 
 build {
@@ -109,11 +90,6 @@ build {
   # Run your setup script and pass environment variables
   provisioner "shell" {
     script = "packer/setup.sh"
-    environment_vars = [
-      "DB_USERNAME=${var.DB_USERNAME}",
-      "DB_PASSWORD=${var.DB_PASSWORD}",
-      "DATABASE_NAME=${var.DATABASE_NAME}",
-      "DATABASE_ENDPOINT=${var.DATABASE_ENDPOINT}"
-    ]
+    # No environment variables passed at this point
   }
 }

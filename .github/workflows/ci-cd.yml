@@ -98,8 +98,4 @@ jobs:
           packer init packer/aws-ubuntu.pkr.hcl
           packer build \
             -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
-            -var "DATABASE_ENDPOINT=${{ secrets.DATABASE_ENDPOINT }}" \
-            -var "DATABASE_NAME=${{ secrets.DATABASE_NAME }}" \
-            -var "DB_USERNAME=${{ secrets.DB_USERNAME }}" \
-            -var "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
             packer/aws-ubuntu.pkr.hcl

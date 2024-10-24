@@ -5,22 +5,6 @@ set -e
 # Set non-interactive mode for apt installations
 export DEBIAN_FRONTEND=noninteractive
 
-# Ensure environment variables (DB credentials and other secrets) are set from GitHub Secrets
-DB_USERNAME=${DB_USERNAME:-}
-DB_PASSWORD=${DB_PASSWORD:-}
-DATABASE_NAME=${DATABASE_NAME:-}
-DATABASE_ENDPOINT=${DATABASE_ENDPOINT:-}
-
-echo "DB_USERNAME: $DB_USERNAME"
-echo "DB_PASSWORD: $DB_PASSWORD"
-echo "DATABASE_NAME: $DATABASE_NAME"
-echo "DATABASE_ENDPOINT: $DATABASE_ENDPOINT"
-
-if [[ -z "$DB_USERNAME" || -z "$DB_PASSWORD" || -z "$DATABASE_NAME" || -z "$DATABASE_ENDPOINT" ]]; then
-  echo "Error: One or more required environment variables are not set."
-  exit 1
-fi
-
 # Update the package index
 echo "Updating package index..."
 sudo apt-get update -y
@@ -37,51 +21,11 @@ sudo apt-get install -y maven
 echo "Verifying Java installation..."
 java -version
 
-# Install MySQL Server
-echo "Installing MySQL Server..."
-sudo apt-get install -y mysql-server
+# Install MySQL client tools instead of MySQL server (since you're using an RDS instance)
+echo "Installing MySQL client tools..."
+sudo apt-get install -y mysql-client
 
-# Start MySQL service and enable it to start on boot
-echo "Starting and enabling MySQL service..."
-sudo systemctl start mysql
-sudo systemctl enable mysql
-
-# Check if 'root'@'localhost' user exists
-echo "Checking if 'root'@'localhost' user exists..."
-user_exists_localhost=$(sudo mysql -u root -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = 'root' AND host = 'localhost');" | tail -n 1)
-
-# Handle 'root'@'localhost'
-if [ "$user_exists_localhost" == "1" ]; then
-  echo "User 'root'@'localhost' already exists. Updating password and privileges..."
-  sudo mysql -u root <<EOF
-ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${DB_PASSWORD}';
-FLUSH PRIVILEGES;
-EOF
-else
-  echo "Creating 'root'@'localhost' user..."
-  sudo mysql -u root <<EOF
-CREATE USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${DB_PASSWORD}';
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
-FLUSH PRIVILEGES;
-EOF
-fi
-
-
-# Create the application database
-echo "Creating database '${DATABASE_NAME}'..."
-sudo mysql -u root -p"${DB_PASSWORD}" <<EOF
-CREATE DATABASE IF NOT EXISTS ${DATABASE_NAME};
-EOF
-
-# Restart MySQL service to apply changes
-sudo systemctl restart mysql
-
-echo "MySQL setup complete!"
-
-# Move service file to systemd folder
-sudo mv /tmp/csye6225.service /etc/systemd/system/
-
-# Creating a no-login user (disabled-password)
+# Ensure the application runs as a no-login user
 echo "Creating a no-login user 'csye6225'..."
 sudo adduser --disabled-password --gecos "" --shell /usr/sbin/nologin csye6225
 
@@ -89,23 +33,31 @@ sudo adduser --disabled-password --gecos "" --shell /usr/sbin/nologin csye6225
 sudo mkdir -p /opt/cloudApp
 
 # Move the application JAR file and set ownership
+echo "Moving application JAR file..."
 sudo mv /tmp/CloudApplication-0.0.1-SNAPSHOT.jar /opt/cloudApp/
 sudo chown -R csye6225:csye6225 /opt/cloudApp
 sudo chmod 755 /opt/cloudApp/CloudApplication-0.0.1-SNAPSHOT.jar
 
 # Ensure the log file is writable by csye6225
+echo "Setting up application log file..."
 sudo touch /var/log/CloudApplication.log
 sudo chown csye6225:csye6225 /var/log/CloudApplication.log
 
-# Set environment variables in /etc/environment (update these with real values)
-echo "Setting environment variables..."
-echo "DATABASE_ENDPOINT=${DATABASE_ENDPOINT}" | sudo tee -a /etc/environment
-echo "DATABASE_NAME=${DATABASE_NAME}" | sudo tee -a /etc/environment
-echo "DB_USERNAME=${DB_USERNAME}" | sudo tee -a /etc/environment
-echo "DB_PASSWORD=${DB_PASSWORD}" | sudo tee -a /etc/environment
+# Move the systemd service file to its directory
+echo "Moving systemd service file..."
+sudo mv /tmp/csye6225.service /etc/systemd/system/
 
-# Reload systemd to pick up new service
+# Reload systemd to pick up the new service
+echo "Reloading systemd..."
 sudo systemctl daemon-reload
+
+# Enable and start the service
+echo "Enabling and starting the service..."
 sudo systemctl enable csye6225.service
-sudo systemctl start csye6225.service
-sudo systemctl status csye6225.service
+#sudo systemctl start csye6225.service
+
+# Check the status of the service
+echo "Checking service status..."
+#sudo systemctl status csye6225.service
+
+echo "Setup complete!"
