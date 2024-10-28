@@ -83,7 +83,7 @@ build {
 
   # Upload config file in tmp
   provisioner "file" {
-    source      = "cloudwatch-config.json"
+    source      = "packer/cloudwatch-config.json"
     destination = "/tmp/cloudwatch-config.json"
   }
 
