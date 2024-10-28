@@ -81,6 +81,12 @@ build {
     destination = "/tmp/"
   }
 
+  # Upload config file in tmp
+  provisioner "file" {
+    source      = "cloudwatch-config.json"
+    destination = "/tmp/cloudwatch-config.json"
+  }
+
   # Upload the service file to /tmp
   provisioner "file" {
     source      = "packer/csye6225.service"

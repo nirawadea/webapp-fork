@@ -25,6 +25,11 @@ java -version
 echo "Installing MySQL client tools..."
 sudo apt-get install -y mysql-client
 
+# Install Amazon CloudWatch Agent
+echo "Installing Amazon CloudWatch Agent..."
+wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+sudo dpkg -i amazon-cloudwatch-agent.deb
+
 # Ensure the application runs as a no-login user
 echo "Creating a no-login user 'csye6225'..."
 sudo adduser --disabled-password --gecos "" --shell /usr/sbin/nologin csye6225
@@ -37,6 +42,10 @@ echo "Moving application JAR file..."
 sudo mv /tmp/CloudApplication-0.0.1-SNAPSHOT.jar /opt/cloudApp/
 sudo chown -R csye6225:csye6225 /opt/cloudApp
 sudo chmod 755 /opt/cloudApp/CloudApplication-0.0.1-SNAPSHOT.jar
+sudo chmod 774 /tmp/cloudwatch-config.json
+
+sudo mv /tmp/cloudwatch-config.json /opt/aws/amazon-cloudwatch-agent/cloudwatch-config.json
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/cloudwatch-config.json -s
 
 # Ensure the log file is writable by csye6225
 echo "Setting up application log file..."
