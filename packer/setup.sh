@@ -38,11 +38,6 @@ sudo mv /tmp/CloudApplication-0.0.1-SNAPSHOT.jar /opt/cloudApp/
 sudo chown -R csye6225:csye6225 /opt/cloudApp
 sudo chmod 755 /opt/cloudApp/CloudApplication-0.0.1-SNAPSHOT.jar
 
-# Ensure the log file is writable by csye6225
-echo "Setting up application log file..."
-sudo touch /var/log/CloudApplication.log
-sudo chown csye6225:csye6225 /var/log/CloudApplication.log
-
 # Move the systemd service file to its directory
 echo "Moving systemd service file..."
 sudo mv /tmp/csye6225.service /etc/systemd/system/
@@ -51,13 +46,7 @@ sudo mv /tmp/csye6225.service /etc/systemd/system/
 echo "Reloading systemd..."
 sudo systemctl daemon-reload
 
-# Enable and start the service
+# Enable the service
 echo "Enabling and starting the service..."
 sudo systemctl enable csye6225.service
-#sudo systemctl start csye6225.service
-
-# Check the status of the service
-echo "Checking service status..."
-#sudo systemctl status csye6225.service
-
 echo "Setup complete!"
