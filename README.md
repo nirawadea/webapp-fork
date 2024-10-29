@@ -2,7 +2,7 @@
 
 This project includes features for checking the database connection’s health.
 
-## Introduction
+## Introduction for the project
 
 The Database Health Check is a Spring Boot application designed to perform database connectivity. It includes one main controllers: `HealthController` for verifying database connectivity.
 
