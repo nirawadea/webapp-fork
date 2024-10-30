@@ -39,6 +39,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/healthz").permitAll()
                         .requestMatchers("/v1/user").permitAll()
+                        .requestMatchers("/upload").permitAll()
                         .anyRequest().authenticated()
                 )
                 .httpBasic(withDefaults());
