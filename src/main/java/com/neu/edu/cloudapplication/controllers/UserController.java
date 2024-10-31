@@ -231,7 +231,6 @@ public class UserController {
         }
     }
 
-
     private boolean hasQueryParameters() {
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
         String requestURI = request.getRequestURI();
