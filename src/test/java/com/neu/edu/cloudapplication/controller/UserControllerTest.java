@@ -1,8 +1,10 @@
 package com.neu.edu.cloudapplication.controller;
 
+import com.neu.edu.cloudapplication.config.StatsDConfig;
 import com.neu.edu.cloudapplication.controllers.UserController;
 import com.neu.edu.cloudapplication.model.User;
 import com.neu.edu.cloudapplication.service.UserService;
+import com.timgroup.statsd.StatsDClient;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +39,9 @@ public class UserControllerTest {
 
     @Mock
     private SecurityContext securityContext;
+
+    @Mock
+    private StatsDClient statsDConfig;
 
     private User user;
 
