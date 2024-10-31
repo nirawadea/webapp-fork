@@ -1,7 +1,9 @@
 package com.neu.edu.cloudapplication.service;
 
+import com.timgroup.statsd.StatsDClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,6 +24,9 @@ public class S3Service {
     private final S3Client s3;
     private final Logger logger = LoggerFactory.getLogger(S3Service.class);
 
+    @Autowired
+    private StatsDClient statsDClient;
+
     @Value("${aws.s3.bucket}")
     private String bucketName;
 
@@ -30,6 +35,7 @@ public class S3Service {
     }
 
     public String uploadFile(String keyName, MultipartFile file) {
+        long startTime = System.currentTimeMillis(); // Start time for upload operation
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
@@ -41,17 +47,23 @@ public class S3Service {
                     RequestBody.fromInputStream(file.getInputStream(), file.getSize())
             );
 
+            statsDClient.recordExecutionTime("s3.upload.time", System.currentTimeMillis() - startTime); // Record execution time
+            statsDClient.incrementCounter("s3.upload.success"); // Track successful upload
+            logger.info("Pic Uploaded successfully");
             return bucketName; // ETag is a unique identifier for the uploaded file
         } catch (IOException ioe) {
+            statsDClient.incrementCounter("s3.upload.failure"); // Track failed upload
             logger.error("IOException: " + ioe.getMessage());
             return "File not uploaded: " + keyName;
         } catch (S3Exception s3Exception) {
+            statsDClient.incrementCounter("s3.upload.failure"); // Track failed upload due to S3 exception
             logger.error("S3Exception: " + s3Exception.awsErrorDetails().errorMessage());
             throw s3Exception;
         }
     }
 
     public String deleteFileFromS3Bucket(String fileUrl, String id) {
+        long startTime = System.currentTimeMillis(); // Start time for delete operation
         String fileName = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
         String objectKey = id + "/" + fileName;
 
@@ -63,11 +75,16 @@ public class S3Service {
 
             DeleteObjectResponse deleteResponse = s3.deleteObject(deleteObjectRequest);
 
+            statsDClient.recordExecutionTime("s3.delete.time", System.currentTimeMillis() - startTime); // Record execution time
+            statsDClient.incrementCounter("s3.delete.success"); // Track successful deletion
             logger.info("Deleted file: " + objectKey + " from bucket: " + bucketName);
             return "Successfully Deleted";
         } catch (S3Exception e) {
+            statsDClient.incrementCounter("s3.delete.failure"); // Track failed deletion
             logger.error("S3Exception: Failed to delete file from S3 - " + e.awsErrorDetails().errorMessage());
             throw e;
+        } finally {
+            statsDClient.recordExecutionTime("s3.delete.totalTime", System.currentTimeMillis() - startTime); // Record total time regardless of success or failure
         }
     }
 }

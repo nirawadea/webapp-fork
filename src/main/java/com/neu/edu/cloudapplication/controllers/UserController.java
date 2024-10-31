@@ -4,7 +4,10 @@ import com.neu.edu.cloudapplication.model.ImageResponse;
 import com.neu.edu.cloudapplication.model.User;
 import com.neu.edu.cloudapplication.service.S3Service;
 import com.neu.edu.cloudapplication.service.UserService;
+import com.timgroup.statsd.StatsDClient;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,20 +37,34 @@ public class UserController {
     @Autowired
     private S3Service s3Service;
 
+    @Autowired
+    private StatsDClient statsDClient; // Injecting StatsDClient for metrics tracking
+
+    private final static Logger logger = LoggerFactory.getLogger(HealthController.class);
+
     @PostMapping
     @PreAuthorize("permitAll()")
     public ResponseEntity<String> createUser(@RequestBody User user) {
+        statsDClient.incrementCounter("endpoint.createUser.post"); // Increment call count
+        long startTime = System.currentTimeMillis();
+
         if (hasQueryParameters()) {
+            logger.info("endpoint.createUser.post BAD_REQUEST Query parameters not allowed");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Query parameters not allowed.");
         }
         if (!isValidEmail(user.getEmail())) {
+            logger.info("endpoint.createUser.post BAD_REQUEST Email not valid");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("This Email is not valid!!!");
         }
         try {
             userService.createUser(user);
+            logger.info("endpoint.createUser.post User created Successfully");
             return ResponseEntity.status(HttpStatus.CREATED).body("User created successfully");
         } catch (RuntimeException e) {
+            logger.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }finally {
+            statsDClient.recordExecutionTime("endpoint.createUser.time", System.currentTimeMillis() - startTime); // Record execution time
         }
 
     }
@@ -60,6 +77,9 @@ public class UserController {
 
     @PutMapping("/self")
     public ResponseEntity<?> updateUser(@RequestBody User user) {
+        statsDClient.incrementCounter("endpoint.updateUser.put");
+        long startTime = System.currentTimeMillis();
+
         if (hasQueryParameters()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Query parameters not allowed.");
         }
@@ -78,12 +98,17 @@ public class UserController {
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }finally {
+            statsDClient.recordExecutionTime("endpoint.updateUser.time", System.currentTimeMillis() - startTime);
         }
     }
 
 
     @GetMapping("/self")
     public ResponseEntity<?> getUser() {
+        statsDClient.incrementCounter("endpoint.getUser.get");
+        long startTime = System.currentTimeMillis();
+
 
         if (hasQueryParameters()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Query parameters not allowed.");
@@ -100,11 +125,16 @@ public class UserController {
             return ResponseEntity.ok().body(user);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }finally {
+            statsDClient.recordExecutionTime("endpoint.getUser.time", System.currentTimeMillis() - startTime);
         }
     }
 
     @PostMapping("/self/pic")
     public ResponseEntity<?> uploadPic(@RequestParam(value="profilePic") MultipartFile profilePic) {
+        statsDClient.incrementCounter("endpoint.uploadPic.post");
+        long startTime = System.currentTimeMillis();
+
         System.out.println("inside upload pic");
         if (hasQueryParameters()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Query parameters not allowed.");
@@ -137,11 +167,15 @@ public class UserController {
             return ResponseEntity.ok().body(imageResponse);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }finally {
+            statsDClient.recordExecutionTime("endpoint.uploadPic.time", System.currentTimeMillis() - startTime);
         }
     }
 
     @GetMapping("/self/pic")
     public ResponseEntity<?> getPic() {
+        statsDClient.incrementCounter("endpoint.getPic.get");
+        long startTime = System.currentTimeMillis();
         System.out.println("inside get pic");
         if (hasQueryParameters()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Query parameters not allowed.");
@@ -164,11 +198,16 @@ public class UserController {
 
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }finally {
+            statsDClient.recordExecutionTime("endpoint.getPic.time", System.currentTimeMillis() - startTime);
         }
     }
 
     @DeleteMapping("/self/pic")
     public ResponseEntity<?> deletePic() {
+        statsDClient.incrementCounter("endpoint.deletePic.delete");
+        long startTime = System.currentTimeMillis();
+
         System.out.println("inside delete pic");
         if (hasQueryParameters()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Query parameters not allowed.");
@@ -187,6 +226,8 @@ public class UserController {
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }finally {
+            statsDClient.recordExecutionTime("endpoint.deletePic.time", System.currentTimeMillis() - startTime);
         }
     }
 
