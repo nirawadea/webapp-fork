@@ -41,7 +41,7 @@ public class S3Service {
                     RequestBody.fromInputStream(file.getInputStream(), file.getSize())
             );
 
-            return response.eTag(); // ETag is a unique identifier for the uploaded file
+            return bucketName; // ETag is a unique identifier for the uploaded file
         } catch (IOException ioe) {
             logger.error("IOException: " + ioe.getMessage());
             return "File not uploaded: " + keyName;
@@ -51,9 +51,9 @@ public class S3Service {
         }
     }
 
-    public String deleteFileFromS3Bucket(String fileUrl, int userId) {
+    public String deleteFileFromS3Bucket(String fileUrl, String id) {
         String fileName = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
-        String objectKey = userId + "/" + fileName;
+        String objectKey = id + "/" + fileName;
 
         try {
             DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()

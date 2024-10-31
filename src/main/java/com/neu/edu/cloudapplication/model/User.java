@@ -11,16 +11,19 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import lombok.Data;
+import org.hibernate.annotations.Type;
 
 import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.UUID;
 
 
 @Entity
 @Data
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
     @Column(name = "first_name")
     private String firstName;
 
@@ -43,8 +46,11 @@ public class User {
     @Column(name = "file_name")
     private String file_name;
 
-    @Column(name = "s3_bucket_path")
-    private String s3_bucket_path;
+    @Column(name = "url")
+    private String url;
+
+    @Column(name = "upload_date")
+    private Date uploadDate;
 
     @PrePersist
     protected void onCreate() {

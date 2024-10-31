@@ -1,5 +1,6 @@
 package com.neu.edu.cloudapplication.controllers;
 
+import com.neu.edu.cloudapplication.model.ImageResponse;
 import com.neu.edu.cloudapplication.model.User;
 import com.neu.edu.cloudapplication.service.S3Service;
 import com.neu.edu.cloudapplication.service.UserService;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -20,6 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Date;
 
 @RestController
 @RequestMapping("/v1/user")
@@ -114,14 +118,73 @@ public class UserController {
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
             System.out.println(profilePic.getOriginalFilename());
-            String bucket_name = s3Service.uploadFile(user.getEmail()+ "/" + profilePic.getOriginalFilename(), profilePic);
+            String bucket_name = s3Service.uploadFile(user.getId()+ "/" + profilePic.getOriginalFilename(), profilePic);
             System.out.println("bucket_name "+bucket_name);
-            String url = bucket_name + "/" + user.getEmail() + "/" + profilePic.getOriginalFilename();
+            String url = bucket_name + "/" + user.getId() + "/" + profilePic.getOriginalFilename();
             System.out.println("url "+url);
+            user.setUploadDate(new Date());
             user.setFile_name(profilePic.getOriginalFilename());
-            user.setS3_bucket_path(url);
+            user.setUrl(url);
             userService.updateUser(user, authenticatedEmail);
-            return ResponseEntity.ok().body(user);
+
+            ImageResponse imageResponse = new ImageResponse(
+                    user.getFile_name(),
+                    user.getId(),
+                    user.getUrl(),
+                    user.getUploadDate(),
+                    user.getId()
+            );
+            return ResponseEntity.ok().body(imageResponse);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/self/pic")
+    public ResponseEntity<?> getPic() {
+        System.out.println("inside upload pic");
+        if (hasQueryParameters()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Query parameters not allowed.");
+        }
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String authenticatedEmail = authentication.getName();  // The email used in basic authentication
+            User user = userService.getUser(authenticatedEmail);
+            if (user.getFile_name() != null) {
+                ImageResponse imageResponse = new ImageResponse(
+                        user.getFile_name(),
+                        user.getId(),
+                        user.getUrl(),
+                        user.getUploadDate(),
+                        user.getId()
+                );
+                return ResponseEntity.ok().body(imageResponse);
+            }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/self/pic")
+    public ResponseEntity<?> deletePic() {
+        System.out.println("inside upload pic");
+        if (hasQueryParameters()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Query parameters not allowed.");
+        }
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String authenticatedEmail = authentication.getName();
+            User user = userService.getUser(authenticatedEmail);
+            System.out.println("Deleting file from S3");
+            String message = s3Service.deleteFileFromS3Bucket(user.getUrl(), user.getId().toString());
+            System.out.println("message "+message);
+            user.setUploadDate(null);
+            user.setFile_name(null);
+            user.setUrl(null);
+            userService.updateUser(user, authenticatedEmail);
+            return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
