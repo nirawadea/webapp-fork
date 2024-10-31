@@ -40,6 +40,12 @@ public class User {
     @Column(name = "account_updated")
     private LocalDateTime accountUpdated;
 
+    @Column(name = "file_name")
+    private String file_name;
+
+    @Column(name = "s3_bucket_path")
+    private String s3_bucket_path;
+
     @PrePersist
     protected void onCreate() {
         accountCreated = LocalDateTime.now();
