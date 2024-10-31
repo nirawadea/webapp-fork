@@ -11,16 +11,20 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import lombok.Data;
+import org.hibernate.annotations.Type;
 
 import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.UUID;
 
 
 @Entity
 @Data
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    @Column(name = "id", columnDefinition = "VARCHAR(36)", unique = true, nullable = false)
+    private String id;
+
     @Column(name = "first_name")
     private String firstName;
 
@@ -40,8 +44,19 @@ public class User {
     @Column(name = "account_updated")
     private LocalDateTime accountUpdated;
 
+    @Column(name = "file_name")
+    private String file_name;
+
+    private String url;
+
+    @Column(name = "upload_date")
+    private Date uploadDate;
+
     @PrePersist
     protected void onCreate() {
+        if (id == null) {
+            id = UUID.randomUUID().toString();  // Automatically generate a UUID as a String
+        }
         accountCreated = LocalDateTime.now();
         accountUpdated = LocalDateTime.now();
     }
