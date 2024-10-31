@@ -10,8 +10,8 @@ import java.util.UUID;
 @AllArgsConstructor
 public class ImageResponse {
     private String file_name;
-    private UUID id;
+    private String id;
     private String url;
     private Date upload_date;
-    private UUID user_id;
+    private String user_id;
 }

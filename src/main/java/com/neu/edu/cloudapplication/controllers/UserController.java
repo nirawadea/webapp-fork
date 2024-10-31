@@ -125,7 +125,7 @@ public class UserController {
             user.setUploadDate(new Date());
             user.setFile_name(profilePic.getOriginalFilename());
             user.setUrl(url);
-            userService.updateUser(user, authenticatedEmail);
+            userService.updatePicData(new Date(), profilePic.getOriginalFilename(), url, user.getEmail());
 
             ImageResponse imageResponse = new ImageResponse(
                     user.getFile_name(),
@@ -142,7 +142,7 @@ public class UserController {
 
     @GetMapping("/self/pic")
     public ResponseEntity<?> getPic() {
-        System.out.println("inside upload pic");
+        System.out.println("inside get pic");
         if (hasQueryParameters()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Query parameters not allowed.");
         }
@@ -169,7 +169,7 @@ public class UserController {
 
     @DeleteMapping("/self/pic")
     public ResponseEntity<?> deletePic() {
-        System.out.println("inside upload pic");
+        System.out.println("inside delete pic");
         if (hasQueryParameters()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Query parameters not allowed.");
         }

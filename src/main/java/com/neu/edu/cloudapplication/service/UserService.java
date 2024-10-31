@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.Optional;
 
 @Service
@@ -52,5 +53,10 @@ public class UserService {
         } else {
             throw new RuntimeException("User doesn't exist with email: " + email);
         }
+    }
+
+    public void updatePicData(Date uploadDate, String fileName, String url, String email) {
+        userRepository.updatePicFields(uploadDate, fileName, url, email);
+
     }
 }

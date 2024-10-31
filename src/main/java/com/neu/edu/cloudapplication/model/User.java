@@ -22,8 +22,9 @@ import java.util.UUID;
 @Data
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @Column(name = "id", columnDefinition = "VARCHAR(36)", unique = true, nullable = false)
+    private String id;
+
     @Column(name = "first_name")
     private String firstName;
 
@@ -46,7 +47,6 @@ public class User {
     @Column(name = "file_name")
     private String file_name;
 
-    @Column(name = "url")
     private String url;
 
     @Column(name = "upload_date")
@@ -54,6 +54,9 @@ public class User {
 
     @PrePersist
     protected void onCreate() {
+        if (id == null) {
+            id = UUID.randomUUID().toString();  // Automatically generate a UUID as a String
+        }
         accountCreated = LocalDateTime.now();
         accountUpdated = LocalDateTime.now();
     }
