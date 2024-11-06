@@ -26,6 +26,9 @@ public class HealthController {
     @Autowired
     private StatsDClient statsDClient;
 
+    @Autowired
+    private DataSource dataSource;
+
     private final static Logger logger = LoggerFactory.getLogger(HealthController.class);
     
     @GetMapping("/healthz")
