@@ -18,7 +18,7 @@ Before building and deploying the application locally, ensure you have the follo
 The `HealthController` It manages health check requests to confirm the database connection status. It offers endpoint for verifying the database connection, handling unsupported HTTP methods, and managing unknown URLs
 
 
-### Endpoints
+### Endpoints for app
 
 Here's a rephrased version:
 
