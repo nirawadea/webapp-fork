@@ -219,10 +219,7 @@ public class UserController {
             System.out.println("Deleting file from S3");
             String message = s3Service.deleteFileFromS3Bucket(user.getUrl(), user.getId().toString());
             System.out.println("message "+message);
-            user.setUploadDate(null);
-            user.setFile_name(null);
-            user.setUrl(null);
-            userService.updateUser(user, authenticatedEmail);
+            userService.updatePicData(null, null, null, user.getEmail());
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
