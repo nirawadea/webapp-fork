@@ -1,7 +1,6 @@
 package com.neu.edu.cloudapplication.controller;
 
 import com.neu.edu.cloudapplication.controllers.HealthController;
-import com.neu.edu.cloudapplication.dao.DbConnection;
 import com.timgroup.statsd.StatsDClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,21 +30,18 @@ public class HealthControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private DbConnection dbConnection;
+    private DataSource dataSource; // Mock DataSource directly
 
-    @Mock
-    private DataSource dataSource;
+    @MockBean
+    private StatsDClient statsDClient;
 
     @Mock
     private Connection connection;
 
-    @MockBean
-    private StatsDClient statsDConfig;
-
     @BeforeEach
     public void setup() throws SQLException {
         MockitoAnnotations.openMocks(this);
-        when(dbConnection.createConnection()).thenReturn(dataSource);
+        // No need to mock dbConnection.createConnection() anymore
     }
 
     @Test
