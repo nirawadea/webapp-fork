@@ -13,7 +13,8 @@ import software.amazon.awssdk.services.sns.SnsClient;
 @TestPropertySource(properties = {
 		"aws.s3.region=us-east-1",
 		"aws.s3.bucket=test-bucket",
-		"sns.topic.arn=arn:aws:sns:us-east-1:557690612200:my-user-creation-topic"
+		"sns.topic.arn=arn:aws:sns:us-east-1:557690612200:my-user-creation-topic",
+		"aws.region=us-east-1"
 })
 class CloudApplicationTests {
 
