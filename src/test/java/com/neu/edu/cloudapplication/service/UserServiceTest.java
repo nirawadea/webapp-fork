@@ -2,6 +2,7 @@ package com.neu.edu.cloudapplication.service;
 
 import com.neu.edu.cloudapplication.model.User;
 import com.neu.edu.cloudapplication.repository.UserRepository;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -40,6 +41,11 @@ public class UserServiceTest {
     private UserService userService;
 
     private User user;
+
+    @BeforeAll
+    public static void setupEnvironment() {
+        System.setProperty("aws.region", "us-east-1"); // Set the AWS region for the test environment
+    }
 
     @BeforeEach
     public void setUp() {

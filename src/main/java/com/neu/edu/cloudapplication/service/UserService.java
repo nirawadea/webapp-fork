@@ -30,7 +30,9 @@ public class UserService {
     @Value("${sns.topic.arn}")
     private String snsTopicArn;
 
-    public UserService() {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
         this.snsClient = SnsClient.builder().build(); // Initialize SNS client
     }
 
