@@ -36,6 +36,8 @@ public class UserService {
         this.snsClient = SnsClient.builder().build(); // Initialize SNS client
     }
 
+
+
     public User createUser(User user) {
         String encryptedPwd = passwordEncoder.encode(user.getPassword());
         user.setPassword(encryptedPwd);
@@ -49,6 +51,14 @@ public class UserService {
         // Publish user creation message to SNS
         publishUserCreatedMessage(savedUser);
         return savedUser;
+    }
+
+    public Optional<User> getUserByEmail(String email){
+        return userRepository.findByEmail(email);
+    }
+
+    public void verifyUser(User user){
+        userRepository.updateIsVerified(true, user.getEmail());
     }
 
     private void publishUserCreatedMessage(User user) {

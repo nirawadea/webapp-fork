@@ -20,4 +20,10 @@ public interface UserRepository extends JpaRepository<User, Integer> {
                          @Param("fileName") String fileName,
                          @Param("url") String url,
                          @Param("email") String email);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.isVerified = :isVerified WHERE u.email = :email")
+    void updateIsVerified(@Param("isVerified") boolean isVerified,
+                         @Param("email") String email);
 }
