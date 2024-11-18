@@ -124,10 +124,6 @@ jobs:
             # Export AMI ID as an environment variable
             echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
 
-      - name: Save AMI ID
-        id: ami
-        run: echo "AMI_ID=$(jq -r '.builds[0].artifact_id' < packer-output.json)" >> $GITHUB_ENV
-
   deploy_to_autoscaling:
     name: Deploy Application to Auto-Scaling Group
     runs-on: ubuntu-latest

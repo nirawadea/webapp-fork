@@ -34,16 +34,16 @@ jobs:
       - name: Archive Build Artifact
         run: mkdir -p artifacts
 
-#      # Step 6: Copy the JAR/WAR file to the artifacts directory
-#      - name: Copy Build Artifact
-#        run: cp target/CloudApplication-0.0.1-SNAPSHOT.jar artifacts/
+      # Step 6: Copy the JAR/WAR file to the artifacts directory
+      - name: Copy Build Artifact
+        run: cp target/CloudApplication-0.0.1-SNAPSHOT.jar artifacts/
 
-#      # Step 7: Upload the build artifact (JAR/WAR) so it can be used in subsequent jobs
-#      - name: Upload Artifact
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: build-artifact
-#          path: artifacts/
+      # Step 7: Upload the build artifact (JAR/WAR) so it can be used in subsequent jobs
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifact
+          path: artifacts/
 
       # Step 8: Set up HashiCorp Packer
       - name: Set up HashiCorp Packer
@@ -69,6 +69,6 @@ jobs:
       - name: Run Packer validate
         run: |
           packer validate \
-            -var "artifact_path=target/CloudApplication-0.0.1-SNAPSHOT.jar" \
+            -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
             packer/aws-ubuntu.pkr.hcl
         continue-on-error: false  # Fail if validation fails
