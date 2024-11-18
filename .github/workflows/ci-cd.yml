@@ -175,7 +175,7 @@ jobs:
         run: |
           echo "Fetching Launch Template ID from AWS..."
           LAUNCH_TEMPLATE_ID=$(aws ec2 describe-launch-templates \
-            --filters Name=tag:Name,Values=my-launch-template \
+            --filters Name=launch-template-name,Values=csye6225_asg \
             --query 'LaunchTemplates[0].LaunchTemplateId' --output text)
           if [ -z "$LAUNCH_TEMPLATE_ID" ]; then
             echo "Failed to retrieve Launch Template ID from AWS."
