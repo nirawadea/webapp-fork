@@ -93,6 +93,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.IAM_USER_SECRET_KEY }}
           aws-region: us-east-1
 
+
+
 #      - name: Build AMI with Packer
 #        run: |
 #          packer init packer/aws-ubuntu.pkr.hcl
@@ -103,43 +105,40 @@ jobs:
       - name: Build AMI with Packer and Extract AMI ID
         id: ami
         run: |
-          # Ensure the JAR file is dynamically located in the artifacts directory
-          JAR_FILE=$(find artifacts -name "*.jar" -type f)
-          if [ -z "$JAR_FILE" ]; then
-            echo "No JAR file found in the artifacts directory!"
-            exit 1
-          fi
-
-          # Build AMI using the dynamically located JAR file and save output to a temporary file
+          # Initialize Packer
+          packer init packer/aws-ubuntu.pkr.hcl
+          
+          # Build the AMI using Packer
           echo "Building AMI with Packer..."
-          AMI_OUTPUT=$(mktemp)
+          AMI_OUTPUT_LOG="packer-output.log"
           packer build \
-            -var "artifact_path=$JAR_FILE" \
-            packer/aws-ubuntu.pkr.hcl > "$AMI_OUTPUT" 2>&1
-
-          # Check if Packer build was successful
+            -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
+            packer/aws-ubuntu.pkr.hcl > "$AMI_OUTPUT_LOG" 2>&1
+          
+          # Check if the Packer build was successful
           if [ $? -ne 0 ]; then
             echo "Packer build failed! See output:"
-            cat "$AMI_OUTPUT"
+            cat "$AMI_OUTPUT_LOG"
             exit 1
           fi
-
-          # Extract AMI ID from the Packer output
-          AMI_ID=$(grep -oP 'ami-\w+' "$AMI_OUTPUT" | head -n 1)
+          
+          # Extract the AMI ID from the Packer output
+          AMI_ID=$(grep -oP 'ami-\w+' "$AMI_OUTPUT_LOG" | head -n 1)
           if [ -z "$AMI_ID" ]; then
             echo "Failed to extract AMI ID from Packer output! See output:"
-            cat "$AMI_OUTPUT"
+            cat "$AMI_OUTPUT_LOG"
             exit 1
           fi
-
-          # Log AMI ID for debugging
+          
+          # Log the extracted AMI ID for debugging
           echo "Extracted AMI ID: $AMI_ID"
-
-          # Export AMI ID as an environment variable
+          
+          # Export the AMI ID as an environment variable for subsequent steps
           echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+          
+          # Cleanup the log file
+          rm -f "$AMI_OUTPUT_LOG"
 
-          # Cleanup temporary file
-          rm -f "$AMI_OUTPUT"
   
 
   deploy_to_autoscaling:
