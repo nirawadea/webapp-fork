@@ -52,13 +52,6 @@ jobs:
           name: build-artifact
           path: artifacts/
 
-#      - name: Configure AWS Credentials (Dev Account)
-#        uses: aws-actions/configure-aws-credentials@v1
-#        with:
-#            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
-#            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
-#            aws-region: us-east-1
-
   packer_build:
     name: Build Custom AMI with Packer
     runs-on: ubuntu-latest
@@ -100,12 +93,36 @@ jobs:
           aws-secret-access-key: ${{ secrets.IAM_USER_SECRET_KEY }}
           aws-region: us-east-1
 
-      - name: Build AMI with Packer
+#      - name: Build AMI with Packer
+#        run: |
+#          packer init packer/aws-ubuntu.pkr.hcl
+#          packer build \
+#            -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
+#            packer/aws-ubuntu.pkr.hcl
+
+      - name: Build AMI with Packer and Extract AMI ID
+        id: ami
         run: |
-          packer init packer/aws-ubuntu.pkr.hcl
-          packer build \
-            -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
-            packer/aws-ubuntu.pkr.hcl
+            # Ensure the JAR file is dynamically located
+            JAR_FILE=$(find target -name "*.jar" -type f)
+            if [ -z "$JAR_FILE" ]; then
+              echo "No JAR file found in the target directory!"
+              exit 1
+            fi
+            
+            # Build AMI using the dynamically located JAR file
+            AMI_OUTPUT=$(packer build -var "artifact_path=$JAR_FILE" packer/aws-ubuntu.pkr.hcl)
+            echo "$AMI_OUTPUT"
+            
+            # Extract AMI ID from the Packer output
+            AMI_ID=$(echo "$AMI_OUTPUT" | grep -oP 'ami-\w+')
+            if [ -z "$AMI_ID" ]; then
+              echo "Failed to extract AMI ID from Packer output!"
+              exit 1
+            fi
+            
+            # Export AMI ID as an environment variable
+            echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
 
       - name: Save AMI ID
         id: ami
