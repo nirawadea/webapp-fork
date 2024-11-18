@@ -99,8 +99,6 @@ build {
     # No environment variables passed at this point
   }
 
-  # Enable the manifest file generation
-  options {
-    generate_manifest = true
-  }
+  # Directly enable the manifest generation
+  generate_manifest = true
 }
