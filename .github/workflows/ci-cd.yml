@@ -1,5 +1,5 @@
 name: CI/CD Workflow
-#pull request
+
 on:
   pull_request:
     branches:
@@ -7,7 +7,6 @@ on:
 
 jobs:
   test_and_build:
-#    if: github.event.pull_request.merged == true  # Run only if the PR was merged
     name: Run Tests and Build Artifact
     runs-on: ubuntu-latest
 
@@ -57,16 +56,22 @@ jobs:
     runs-on: ubuntu-latest
     needs: test_and_build
 
+    outputs:
+      ami_id: ${{ steps.build_image.outputs.ami_id }}
+
     steps:
+      # Step 1: Check out the repository code
       - name: Checkout Code
         uses: actions/checkout@v2
 
+      # Step 2: Download Build Artifact
       - name: Download Build Artifact
         uses: actions/download-artifact@v3
         with:
           name: build-artifact
           path: artifacts/
 
+      # Step 3: Check File Existence
       - name: Check File Existence
         run: |
           if [ -f packer/csye6225.service ]; then
@@ -76,70 +81,56 @@ jobs:
             exit 1
           fi
 
+      # Step 4: Set Permissions for Service File
       - name: Set Permissions for Service File
-        run: |
-          chmod 644 packer/csye6225.service
+        run: chmod 644 packer/csye6225.service
 
+      # Step 5: Install Packer
       - name: Install Packer
         run: |
           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
           sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
           sudo apt-get update && sudo apt-get install packer
 
+      # Step 6: Configure AWS Credentials
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.IAM_USER_ACCESS_KEY_ID}}
+          aws-access-key-id: ${{ secrets.IAM_USER_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.IAM_USER_SECRET_KEY }}
           aws-region: us-east-1
 
+      # Step 7: Install jq
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
 
-
-#      - name: Build AMI with Packer
-#        run: |
-#          packer init packer/aws-ubuntu.pkr.hcl
-#          packer build \
-#            -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
-#            packer/aws-ubuntu.pkr.hcl
-
+      # Step 8: Build AMI with Packer and Extract AMI ID
       - name: Build AMI with Packer and Extract AMI ID
-        id: ami
+        id: build_image
         run: |
           # Initialize Packer
           packer init packer/aws-ubuntu.pkr.hcl
           
-          # Build the AMI using Packer
-          echo "Building AMI with Packer..."
-          AMI_OUTPUT_LOG="packer-output.log"
+          # Build the AMI with Packer and generate a manifest file
           packer build \
             -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
-            packer/aws-ubuntu.pkr.hcl > "$AMI_OUTPUT_LOG" 2>&1
+            -machine-readable \
+            packer/aws-ubuntu.pkr.hcl
           
-          # Check if the Packer build was successful
-          if [ $? -ne 0 ]; then
-            echo "Packer build failed! See output:"
-            cat "$AMI_OUTPUT_LOG"
+          # Extract the AMI ID from the Packer manifest file
+          ami_id=$(jq -r '.builds[-1].artifact_id' manifest.json | cut -d':' -f2)
+          if [ -z "$ami_id" ]; then
+            echo "Failed to extract AMI ID from the Packer manifest file!"
             exit 1
           fi
           
-          # Extract the AMI ID from the Packer output
-          AMI_ID=$(grep -oP 'ami-\w+' "$AMI_OUTPUT_LOG" | head -n 1)
-          if [ -z "$AMI_ID" ]; then
-            echo "Failed to extract AMI ID from Packer output! See output:"
-            cat "$AMI_OUTPUT_LOG"
-            exit 1
-          fi
+          # Export the AMI ID as a step output
+          echo "::set-output name=ami_id::$ami_id"
           
           # Log the extracted AMI ID for debugging
-          echo "Extracted AMI ID: $AMI_ID"
-          
-          # Export the AMI ID as an environment variable for subsequent steps
-          echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
-          
-          # Cleanup the log file
-          rm -f "$AMI_OUTPUT_LOG"
-
-  
+          echo "Extracted AMI ID: $ami_id"
 
   deploy_to_autoscaling:
     name: Deploy Application to Auto-Scaling Group
@@ -151,29 +142,18 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      # Step 2: Set up Terraform
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.9.8  # Use the version you're using locally
-
-      - name: Refresh Terraform State
-        run: terraform refresh
-
-      # Step 3: Configure AWS Credentials (Dev Account)
-      - name: Configure AWS Credentials (Dev Account)
+      # Step 2: Configure AWS Credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
           aws-region: us-east-1
 
-      # Step 4: Retrieve Launch Template ID from AWS
-
+      # Step 3: Retrieve Launch Template ID from AWS
       - name: Retrieve Launch Template ID from AWS
         id: launch_template
         run: |
-          echo "Fetching Launch Template ID from AWS..."
           LAUNCH_TEMPLATE_ID=$(aws ec2 describe-launch-templates \
             --filters Name=launch-template-name,Values=csye6225_asg \
             --query 'LaunchTemplates[0].LaunchTemplateId' --output text)
@@ -181,22 +161,21 @@ jobs:
             echo "Failed to retrieve Launch Template ID from AWS."
             exit 1
           fi
-          echo "Launch Template ID: $LAUNCH_TEMPLATE_ID"
           echo "LAUNCH_TEMPLATE_ID=$LAUNCH_TEMPLATE_ID" >> $GITHUB_ENV
 
-      # Step 5: Create New Launch Template Version
+      # Step 4: Create New Launch Template Version
       - name: Create New Launch Template Version
         run: |
           aws ec2 create-launch-template-version \
             --launch-template-id ${{ env.LAUNCH_TEMPLATE_ID }} \
             --source-version '$Latest' \
-            --launch-template-data '{"ImageId":"'"${{ env.AMI_ID }}"'"}'
+            --launch-template-data '{"ImageId":"'"${{ needs.packer_build.outputs.ami_id }}"'"}'
 
           aws ec2 modify-launch-template \
             --launch-template-id ${{ env.LAUNCH_TEMPLATE_ID }} \
             --default-version '$Latest'
 
-      # Step 6: Start Instance Refresh
+      # Step 5: Start Instance Refresh
       - name: Start Instance Refresh
         id: refresh
         run: |
@@ -205,9 +184,13 @@ jobs:
             --preferences '{"MinHealthyPercentage":90}' \
             --query 'InstanceRefreshId' \
             --output text)
+          if [ -z "$REFRESH_ID" ]; then
+            echo "Failed to start instance refresh."
+            exit 1
+          fi
           echo "REFRESH_ID=$REFRESH_ID" >> $GITHUB_ENV
 
-      # Step 7: Wait for Instance Refresh to Complete
+      # Step 6: Wait for Instance Refresh to Complete
       - name: Wait for Instance Refresh to Complete
         run: |
           while true; do
