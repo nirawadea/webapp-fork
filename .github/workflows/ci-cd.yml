@@ -103,26 +103,27 @@ jobs:
       - name: Build AMI with Packer and Extract AMI ID
         id: ami
         run: |
-            # Ensure the JAR file is dynamically located
-            JAR_FILE=$(find target -name "*.jar" -type f)
-            if [ -z "$JAR_FILE" ]; then
-              echo "No JAR file found in the target directory!"
-              exit 1
-            fi
-            
-            # Build AMI using the dynamically located JAR file
-            AMI_OUTPUT=$(packer build -var "artifact_path=$JAR_FILE" packer/aws-ubuntu.pkr.hcl)
-            echo "$AMI_OUTPUT"
-            
-            # Extract AMI ID from the Packer output
-            AMI_ID=$(echo "$AMI_OUTPUT" | grep -oP 'ami-\w+')
-            if [ -z "$AMI_ID" ]; then
-              echo "Failed to extract AMI ID from Packer output!"
-              exit 1
-            fi
-            
-            # Export AMI ID as an environment variable
-            echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+          # Ensure the JAR file is dynamically located in the artifacts directory
+          JAR_FILE=$(find artifacts -name "*.jar" -type f)
+          if [ -z "$JAR_FILE" ]; then
+            echo "No JAR file found in the artifacts directory!"
+            exit 1
+          fi
+          
+          # Build AMI using the dynamically located JAR file
+          AMI_OUTPUT=$(packer build -var "artifact_path=$JAR_FILE" packer/aws-ubuntu.pkr.hcl)
+          echo "$AMI_OUTPUT"
+          
+          # Extract AMI ID from the Packer output
+          AMI_ID=$(echo "$AMI_OUTPUT" | grep -oP 'ami-\w+')
+          if [ -z "$AMI_ID" ]; then
+            echo "Failed to extract AMI ID from Packer output!"
+            exit 1
+          fi
+          
+          # Export AMI ID as an environment variable
+          echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+  
 
   deploy_to_autoscaling:
     name: Deploy Application to Auto-Scaling Group
