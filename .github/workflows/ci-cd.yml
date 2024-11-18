@@ -193,11 +193,15 @@ jobs:
             sleep 30
             STATUS=$(aws autoscaling describe-instance-refreshes \
               --auto-scaling-group-name app_asg \
-              --query 'InstanceRefreshes[?InstanceRefreshId=='$REFRESH_ID'].Status' \
+              --query "InstanceRefreshes[?InstanceRefreshId=='${REFRESH_ID}'].Status | [0]" \
               --output text)
+
+            echo "Current Instance Refresh Status: $STATUS"
+
             if [ "$STATUS" == "Failed" ]; then
               echo "Instance Refresh Failed."
               exit 1
             fi
           done
           echo "Instance Refresh Completed Successfully."
+
