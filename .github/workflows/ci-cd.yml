@@ -188,36 +188,31 @@ jobs:
       # Step 6: Wait for Instance Refresh to Complete
       - name: Wait for Instance Refresh to Complete
         run: |
-          STATUS=""
-          ATTEMPTS=0
-          MAX_ATTEMPTS=40  # Timeout after 40 attempts (20 minutes with 30-second intervals)
-
-          while [ "$STATUS" != "Successful" ]; do
-            sleep 30
-            ATTEMPTS=$((ATTEMPTS + 1))
-
+          while true; do
             # Fetch the current status of the instance refresh
             STATUS=$(aws autoscaling describe-instance-refreshes \
               --auto-scaling-group-name app_asg \
               --instance-refresh-ids "${REFRESH_ID}" \
               --query 'InstanceRefreshes[0].Status' \
               --output text)
-
-            echo "Current Instance Refresh Status: $STATUS (Attempt $ATTEMPTS/$MAX_ATTEMPTS)"
-
-            # Check if the refresh failed
-            if [ "$STATUS" == "Failed" ]; then
-              echo "Instance Refresh Failed."
+          
+            echo "Instance Refresh Status: $STATUS"
+          
+            # Handle different statuses
+            if [[ "$STATUS" = "Successful" ]]; then
+              echo "Instance refresh completed successfully."
+              break
+            elif [[ "$STATUS" = "Failed" ]]; then
+              echo "Instance refresh failed."
               exit 1
-            fi
-
-            # Timeout condition
-            if [ $ATTEMPTS -ge $MAX_ATTEMPTS ]; then
-              echo "Instance Refresh Timed Out after $((MAX_ATTEMPTS * 30 / 60)) minutes."
+            elif [[ "$STATUS" = "Cancelled" ]]; then
+              echo "Instance refresh was cancelled."
               exit 1
+            else
+              echo "Instance refresh is in progress. Checking again in 30 seconds..."
+              sleep 30
             fi
           done
-
-          echo "Instance Refresh Completed Successfully."
+     
 
 
