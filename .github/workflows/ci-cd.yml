@@ -100,34 +100,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.IAM_USER_SECRET_KEY }}
           aws-region: us-east-1
 
-      # Step 7: Install jq
-      - name: Install jq
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
-
-      # Step 8: Build AMI with Packer and Extract AMI ID
+      # Step 7: Build AMI with Packer and Extract AMI ID
       - name: Build AMI with Packer and Extract AMI ID
         id: build_image
         run: |
           # Initialize Packer
           packer init packer/aws-ubuntu.pkr.hcl
 
-          # Build the AMI with Packer and generate a manifest file
-          packer build \
-            -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
-            packer/aws-ubuntu.pkr.hcl
+          # Build the AMI with Packer and capture the output
+          echo "Building AMI with Packer..."
+          AMI_OUTPUT=$(packer build -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" packer/aws-ubuntu.pkr.hcl)
 
-          # Check if the manifest file exists
-          if [ ! -f manifest.json ]; then
-            echo "Packer manifest file not found!"
-            exit 1
-          fi
+          # Extract the AMI ID from the output using grep
+          echo "$AMI_OUTPUT"
+          ami_id=$(echo "$AMI_OUTPUT" | grep -oP 'ami-\w+')
 
-          # Extract the AMI ID from the manifest file
-          ami_id=$(jq -r '.builds[-1].artifact_id' manifest.json | cut -d':' -f2)
+          # Validate that the AMI ID was extracted
           if [ -z "$ami_id" ]; then
-            echo "Failed to extract AMI ID from the Packer manifest file!"
+            echo "Failed to extract AMI ID from the Packer build output!"
             exit 1
           fi
 
