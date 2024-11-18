@@ -158,15 +158,24 @@ jobs:
           terraform_version: 1.9.8  # Use the version you're using locally
 
       # Step 3: Initialize Terraform
-      - name: Terraform Init
-        run: terraform init
+      - name: Terraform Init and Apply
+        run: |
+          terraform init
+          terraform apply -auto-approve
+      
 
       # Step 4: Retrieve Launch Template ID
-      - name: Get Launch Template ID
+      - name: Retrieve Launch Template ID
         id: launch_template
         run: |
-          export LAUNCH_TEMPLATE_ID=$(terraform output -raw launch_template_id)
-          echo "LAUNCH_TEMPLATE_ID=$LAUNCH_TEMPLATE_ID" >> $GITHUB_ENV
+            echo "Fetching Launch Template ID..."
+            export LAUNCH_TEMPLATE_ID=$(terraform output -raw launch_template_id 2>/dev/null || echo "")
+            if [ -z "$LAUNCH_TEMPLATE_ID" ]; then
+              echo "Failed to retrieve Launch Template ID. Ensure Terraform is properly initialized and applied."
+              exit 1
+            fi
+            echo "Launch Template ID: $LAUNCH_TEMPLATE_ID"
+            echo "LAUNCH_TEMPLATE_ID=$LAUNCH_TEMPLATE_ID" >> $GITHUB_ENV
 
       # Step 5: Configure AWS Credentials (Dev Account)
       - name: Configure AWS Credentials (Dev Account)
