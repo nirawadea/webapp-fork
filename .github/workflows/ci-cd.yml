@@ -170,39 +170,19 @@ jobs:
             --launch-template-id ${{ env.LAUNCH_TEMPLATE_ID }} \
             --default-version '$Latest'
 
-       # Step 5: Cancel Current Instance Refresh (if any) and Start a New Instance Refresh
-      - name: Cancel Current Instance Refresh and Start New
+      # Step 5: Start Instance Refresh
+      - name: Start Instance Refresh
         id: refresh
         run: |
-          # Check if an instance refresh is in progress
-          EXISTING_REFRESH_ID=$(aws autoscaling describe-instance-refreshes \
-            --auto-scaling-group-name app_asg \
-            --query 'InstanceRefreshes[?Status==`InProgress`].InstanceRefreshId | [0]' \
-            --output text)
-
-          if [ -n "$EXISTING_REFRESH_ID" ]; then
-            echo "Existing Instance Refresh in progress. ID: $EXISTING_REFRESH_ID"
-            echo "Cancelling the current instance refresh..."
-            aws autoscaling cancel-instance-refresh --auto-scaling-group-name app_asg
-            echo "Instance Refresh Cancelled."
-          else
-            echo "No active instance refresh found."
-          fi
-
-          # Start a new instance refresh
-          echo "Starting a new instance refresh..."
           REFRESH_ID=$(aws autoscaling start-instance-refresh \
             --auto-scaling-group-name app_asg \
             --preferences '{"MinHealthyPercentage":90}' \
             --query 'InstanceRefreshId' \
             --output text)
-
           if [ -z "$REFRESH_ID" ]; then
-            echo "Failed to start a new instance refresh."
+            echo "Failed to start instance refresh."
             exit 1
           fi
-
-          echo "New Instance Refresh Started Successfully. ID: $REFRESH_ID"
           echo "REFRESH_ID=$REFRESH_ID" >> $GITHUB_ENV
 
       # Step 6: Wait for Instance Refresh to Complete
