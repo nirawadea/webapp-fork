@@ -169,6 +169,7 @@ jobs:
           aws-region: us-east-1
 
       # Step 4: Retrieve Launch Template ID from AWS
+
       - name: Retrieve Launch Template ID from AWS
         id: launch_template
         run: |
