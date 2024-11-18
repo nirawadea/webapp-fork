@@ -52,6 +52,13 @@ jobs:
           name: build-artifact
           path: artifacts/
 
+#      - name: Configure AWS Credentials (Dev Account)
+#        uses: aws-actions/configure-aws-credentials@v1
+#        with:
+#            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+#            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+#            aws-region: us-east-1
+
   packer_build:
     name: Build Custom AMI with Packer
     runs-on: ubuntu-latest
@@ -99,3 +106,86 @@ jobs:
           packer build \
             -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
             packer/aws-ubuntu.pkr.hcl
+
+      - name: Save AMI ID
+        id: ami
+        run: echo "AMI_ID=$(jq -r '.builds[0].artifact_id' < packer-output.json)" >> $GITHUB_ENV
+
+  deploy_to_autoscaling:
+    name: Deploy Application to Auto-Scaling Group
+    runs-on: ubuntu-latest
+    needs: packer_build
+
+    steps:
+      # Step 1: Check out the repository code
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      # Step 2: Set up Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.9.8  # Use the version you're using locally
+
+      # Step 3: Initialize Terraform
+      - name: Terraform Init
+        run: terraform init
+
+      # Step 4: Retrieve Launch Template ID
+      - name: Get Launch Template ID
+        id: launch_template
+        run: |
+          export LAUNCH_TEMPLATE_ID=$(terraform output -raw launch_template_id)
+          echo "LAUNCH_TEMPLATE_ID=$LAUNCH_TEMPLATE_ID" >> $GITHUB_ENV
+
+      # Step 5: Configure AWS Credentials (Dev Account)
+      - name: Configure AWS Credentials (Dev Account)
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.DEV_ACCOUNT_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEV_ACCOUNT_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # Step 6: Create New Launch Template Version
+      - name: Create New Launch Template Version
+        run: |
+          aws ec2 create-launch-template-version \
+            --launch-template-id ${{ env.LAUNCH_TEMPLATE_ID }} \
+            --source-version '$Latest' \
+            --launch-template-data '{"ImageId":"'"${{ env.AMI_ID }}"'"}'
+
+          aws ec2 modify-launch-template \
+            --launch-template-id ${{ env.LAUNCH_TEMPLATE_ID }} \
+            --default-version '$Latest'
+
+      # Step 7: Start Instance Refresh
+      - name: Start Instance Refresh
+        id: refresh
+        run: |
+          REFRESH_ID=$(aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name app_asg \
+            --preferences '{"MinHealthyPercentage":90}' \
+            --query 'InstanceRefreshId' \
+            --output text)
+          echo "REFRESH_ID=$REFRESH_ID" >> $GITHUB_ENV
+
+      # Step 8: Wait for Instance Refresh to Complete
+      - name: Wait for Instance Refresh to Complete
+        run: |
+          while true; do
+            STATUS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name app_asg \
+              --instance-refresh-ids "${{ env.REFRESH_ID }}" \
+              --query 'InstanceRefreshes[0].Status' \
+              --output text)
+
+            echo "Instance Refresh Status: $STATUS"
+            if [ "$STATUS" = "Successful" ]; then
+              echo "Instance refresh completed successfully."
+              break
+            elif [ "$STATUS" = "Failed" ]; then
+              echo "Instance refresh failed."
+              exit 1
+            fi
+            sleep 30
+          done
