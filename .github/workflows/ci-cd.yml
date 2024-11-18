@@ -188,20 +188,16 @@ jobs:
       # Step 6: Wait for Instance Refresh to Complete
       - name: Wait for Instance Refresh to Complete
         run: |
-          while true; do
+          STATUS=""
+          while [ "$STATUS" != "Successful" ]; do
+            sleep 30
             STATUS=$(aws autoscaling describe-instance-refreshes \
               --auto-scaling-group-name app_asg \
-              --instance-refresh-ids "${{ env.REFRESH_ID }}" \
-              --query 'InstanceRefreshes[0].Status' \
+              --query 'InstanceRefreshes[?InstanceRefreshId=='$REFRESH_ID'].Status' \
               --output text)
-
-            echo "Instance Refresh Status: $STATUS"
-            if [ "$STATUS" = "Successful" ]; then
-              echo "Instance refresh completed successfully."
-              break
-            elif [ "$STATUS" = "Failed" ]; then
-              echo "Instance refresh failed."
+            if [ "$STATUS" == "Failed" ]; then
+              echo "Instance Refresh Failed."
               exit 1
             fi
-            sleep 30
           done
+          echo "Instance Refresh Completed Successfully."
