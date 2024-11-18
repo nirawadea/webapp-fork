@@ -99,6 +99,7 @@ build {
     # No environment variables passed at this point
   }
 
-  # Directly enable the manifest generation
-  generate_manifest = true
+  post-processor "manifest" {
+    output = "packer-manifest.json"
+  }
 }
