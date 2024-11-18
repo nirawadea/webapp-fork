@@ -98,4 +98,9 @@ build {
     script = "packer/setup.sh"
     # No environment variables passed at this point
   }
+
+  # Enable the manifest file generation
+  options {
+    generate_manifest = true
+  }
 }

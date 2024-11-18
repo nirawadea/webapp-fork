@@ -112,23 +112,28 @@ jobs:
         run: |
           # Initialize Packer
           packer init packer/aws-ubuntu.pkr.hcl
-          
+
           # Build the AMI with Packer and generate a manifest file
           packer build \
             -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
-            -machine-readable \
             packer/aws-ubuntu.pkr.hcl
-          
-          # Extract the AMI ID from the Packer manifest file
+
+          # Check if the manifest file exists
+          if [ ! -f manifest.json ]; then
+            echo "Packer manifest file not found!"
+            exit 1
+          fi
+
+          # Extract the AMI ID from the manifest file
           ami_id=$(jq -r '.builds[-1].artifact_id' manifest.json | cut -d':' -f2)
           if [ -z "$ami_id" ]; then
             echo "Failed to extract AMI ID from the Packer manifest file!"
             exit 1
           fi
-          
+
           # Export the AMI ID as a step output
           echo "::set-output name=ami_id::$ami_id"
-          
+
           # Log the extracted AMI ID for debugging
           echo "Extracted AMI ID: $ami_id"
 
