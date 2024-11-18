@@ -170,38 +170,74 @@ jobs:
             --launch-template-id ${{ env.LAUNCH_TEMPLATE_ID }} \
             --default-version '$Latest'
 
-      # Step 5: Start Instance Refresh
-      - name: Start Instance Refresh
+       # Step 5: Cancel Current Instance Refresh (if any) and Start a New Instance Refresh
+      - name: Cancel Current Instance Refresh and Start New
         id: refresh
         run: |
+          # Check if an instance refresh is in progress
+          EXISTING_REFRESH_ID=$(aws autoscaling describe-instance-refreshes \
+            --auto-scaling-group-name app_asg \
+            --query 'InstanceRefreshes[?Status==`InProgress`].InstanceRefreshId | [0]' \
+            --output text)
+
+          if [ -n "$EXISTING_REFRESH_ID" ]; then
+            echo "Existing Instance Refresh in progress. ID: $EXISTING_REFRESH_ID"
+            echo "Cancelling the current instance refresh..."
+            aws autoscaling cancel-instance-refresh --auto-scaling-group-name app_asg
+            echo "Instance Refresh Cancelled."
+          else
+            echo "No active instance refresh found."
+          fi
+
+          # Start a new instance refresh
+          echo "Starting a new instance refresh..."
           REFRESH_ID=$(aws autoscaling start-instance-refresh \
             --auto-scaling-group-name app_asg \
             --preferences '{"MinHealthyPercentage":90}' \
             --query 'InstanceRefreshId' \
             --output text)
+
           if [ -z "$REFRESH_ID" ]; then
-            echo "Failed to start instance refresh."
+            echo "Failed to start a new instance refresh."
             exit 1
           fi
+
+          echo "New Instance Refresh Started Successfully. ID: $REFRESH_ID"
           echo "REFRESH_ID=$REFRESH_ID" >> $GITHUB_ENV
 
       # Step 6: Wait for Instance Refresh to Complete
       - name: Wait for Instance Refresh to Complete
         run: |
           STATUS=""
+          ATTEMPTS=0
+          MAX_ATTEMPTS=40  # Timeout after 40 attempts (20 minutes with 30-second intervals)
+
           while [ "$STATUS" != "Successful" ]; do
             sleep 30
+            ATTEMPTS=$((ATTEMPTS + 1))
+
+            # Fetch the current status of the instance refresh
             STATUS=$(aws autoscaling describe-instance-refreshes \
               --auto-scaling-group-name app_asg \
-              --query "InstanceRefreshes[?InstanceRefreshId=='${REFRESH_ID}'].Status | [0]" \
+              --instance-refresh-ids "${REFRESH_ID}" \
+              --query 'InstanceRefreshes[0].Status' \
               --output text)
 
-            echo "Current Instance Refresh Status: $STATUS"
+            echo "Current Instance Refresh Status: $STATUS (Attempt $ATTEMPTS/$MAX_ATTEMPTS)"
 
+            # Check if the refresh failed
             if [ "$STATUS" == "Failed" ]; then
               echo "Instance Refresh Failed."
               exit 1
             fi
+
+            # Timeout condition
+            if [ $ATTEMPTS -ge $MAX_ATTEMPTS ]; then
+              echo "Instance Refresh Timed Out after $((MAX_ATTEMPTS * 30 / 60)) minutes."
+              exit 1
+            fi
           done
+
           echo "Instance Refresh Completed Successfully."
+
 
