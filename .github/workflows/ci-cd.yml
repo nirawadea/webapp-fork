@@ -109,20 +109,37 @@ jobs:
             echo "No JAR file found in the artifacts directory!"
             exit 1
           fi
-          
-          # Build AMI using the dynamically located JAR file
-          AMI_OUTPUT=$(packer build -var "artifact_path=$JAR_FILE" packer/aws-ubuntu.pkr.hcl)
-          echo "$AMI_OUTPUT"
-          
-          # Extract AMI ID from the Packer output
-          AMI_ID=$(echo "$AMI_OUTPUT" | grep -oP 'ami-\w+')
-          if [ -z "$AMI_ID" ]; then
-            echo "Failed to extract AMI ID from Packer output!"
+
+          # Build AMI using the dynamically located JAR file and save output to a temporary file
+          echo "Building AMI with Packer..."
+          AMI_OUTPUT=$(mktemp)
+          packer build \
+            -var "artifact_path=$JAR_FILE" \
+            packer/aws-ubuntu.pkr.hcl > "$AMI_OUTPUT" 2>&1
+
+          # Check if Packer build was successful
+          if [ $? -ne 0 ]; then
+            echo "Packer build failed! See output:"
+            cat "$AMI_OUTPUT"
             exit 1
           fi
-          
+
+          # Extract AMI ID from the Packer output
+          AMI_ID=$(grep -oP 'ami-\w+' "$AMI_OUTPUT" | head -n 1)
+          if [ -z "$AMI_ID" ]; then
+            echo "Failed to extract AMI ID from Packer output! See output:"
+            cat "$AMI_OUTPUT"
+            exit 1
+          fi
+
+          # Log AMI ID for debugging
+          echo "Extracted AMI ID: $AMI_ID"
+
           # Export AMI ID as an environment variable
           echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+
+          # Cleanup temporary file
+          rm -f "$AMI_OUTPUT"
   
 
   deploy_to_autoscaling:
