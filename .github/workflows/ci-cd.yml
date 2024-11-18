@@ -157,11 +157,11 @@ jobs:
         with:
           terraform_version: 1.9.8  # Use the version you're using locally
 
-      # Step 3: Initialize Terraform
-      - name: Terraform Init and Apply
-        run: |
-          terraform init
-          terraform apply -auto-approve
+#      # Step 3: Initialize Terraform
+#      - name: Terraform Init and Apply
+#        run: |
+#          terraform init
+#          terraform apply -auto-approve
       
 
       # Step 4: Retrieve Launch Template ID
