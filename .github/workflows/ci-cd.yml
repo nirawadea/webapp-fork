@@ -111,8 +111,9 @@ jobs:
           echo "Building AMI with Packer..."
           AMI_OUTPUT=$(packer build -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" packer/aws-ubuntu.pkr.hcl)
           
-          # Extract the AMI ID from the machine-readable output
-          ami_id=$(grep -o 'ami-[a-zA-Z0-9]\+' packer-output.log | tail -n1)
+          # Extract the AMI ID from the output using grep
+          echo "$AMI_OUTPUT"
+          ami_id=$(echo "$AMI_OUTPUT" | grep -oP 'ami-\w+')
 
           # Validate that the AMI ID was extracted
           if [ -z "$ami_id" ]; then
@@ -120,8 +121,8 @@ jobs:
             exit 1
           fi
 
-          # Export the AMI ID as an environment variable for use in subsequent steps
-          echo "AMI_ID=$ami_id" >> $GITHUB_ENV
+          # Export the AMI ID as a step output
+          echo "::set-output name=ami_id::$ami_id"
 
           # Log the extracted AMI ID for debugging
           echo "Extracted AMI ID: $ami_id"
