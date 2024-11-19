@@ -111,11 +111,8 @@ jobs:
           echo "Building AMI with Packer..."
           AMI_OUTPUT=$(packer build -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" packer/aws-ubuntu.pkr.hcl)
           
-          # Log the full output for debugging
-          echo "$AMI_OUTPUT"
-
-          # Extract the AMI ID from the output
-          ami_id=$(echo "$AMI_OUTPUT" | grep -oP '(?<=artifact,0,id,ami-)[a-zA-Z0-9]+')
+          # Extract the AMI ID from the machine-readable output
+          ami_id=$(grep -o 'ami-[a-zA-Z0-9]\+' packer-output.log | tail -n1)
 
           # Validate that the AMI ID was extracted
           if [ -z "$ami_id" ]; then
