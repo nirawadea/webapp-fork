@@ -161,14 +161,36 @@ jobs:
       # Step 4: Create New Launch Template Version
       - name: Create New Launch Template Version
         run: |
+          # Create a new launch template version with the updated AMI
           aws ec2 create-launch-template-version \
             --launch-template-id ${{ env.LAUNCH_TEMPLATE_ID }} \
             --source-version '$Latest' \
             --launch-template-data '{"ImageId":"'"${{ needs.packer_build.outputs.ami_id }}"'"}'
-
+          
+          # Modify the default version to use the latest launch template version
           aws ec2 modify-launch-template \
             --launch-template-id ${{ env.LAUNCH_TEMPLATE_ID }} \
             --default-version '$Latest'
+          
+          # Validate that the default version is updated
+          DEFAULT_VERSION=$(aws ec2 describe-launch-templates \
+            --launch-template-id "${{ env.LAUNCH_TEMPLATE_ID }}" \
+            --query 'LaunchTemplates[0].DefaultVersionNumber' \
+            --output text)
+          echo "Default Launch Template Version: $DEFAULT_VERSION"
+          
+          # Validate that the ASG is using the correct launch template version
+          ASG_LAUNCH_TEMPLATE_VERSION=$(aws autoscaling describe-auto-scaling-groups \
+            --auto-scaling-group-names app_asg \
+            --query 'AutoScalingGroups[0].LaunchTemplate.Version' \
+            --output text)
+          echo "ASG Launch Template Version: $ASG_LAUNCH_TEMPLATE_VERSION"
+          
+          if [ "$ASG_LAUNCH_TEMPLATE_VERSION" != "$DEFAULT_VERSION" ]; then
+            echo "ASG is not using the latest launch template version. Please check ASG configuration."
+            exit 1
+          fi
+
 
       # Step 5: Start Instance Refresh
       - name: Start Instance Refresh
@@ -188,15 +210,22 @@ jobs:
       # Step 6: Wait for Instance Refresh to Complete
       - name: Wait for Instance Refresh to Complete
         run: |
-          while true; do
             # Fetch the current status of the instance refresh
             STATUS=$(aws autoscaling describe-instance-refreshes \
               --auto-scaling-group-name app_asg \
               --instance-refresh-ids "${REFRESH_ID}" \
               --query 'InstanceRefreshes[0].Status' \
               --output text)
-          
-            echo "Instance Refresh Status: $STATUS"
+            while [[ "$STATUS" != "Successful" && "$STATUS" != "Failed" && "$STATUS" != "Cancelled" ]]; do
+              echo "Instance refresh is in progress. Checking again in 30 seconds..."
+              sleep 30
+              STATUS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name app_asg \
+              --instance-refresh-ids "${REFRESH_ID}" \
+              --query 'InstanceRefreshes[0].Status' \
+              --output text)
+            done
+
           
             # Handle different statuses
             if [[ "$STATUS" = "Successful" ]]; then
@@ -212,7 +241,6 @@ jobs:
               echo "Instance refresh is in progress. Checking again in 30 seconds..."
               sleep 30
             fi
-          done
      
 
 
