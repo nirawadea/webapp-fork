@@ -98,4 +98,10 @@ build {
     script = "packer/setup.sh"
     # No environment variables passed at this point
   }
+  # post-processor "manifest" {
+  #   output = "manifest.json"
+  #   strip_path = true
+  # }
+
 }
+
