@@ -171,7 +171,6 @@ jobs:
             --default-version '$Latest'
 
       # Step 5: Start Instance Refresh
-
       - name: Start Instance Refresh
         id: refresh
         run: |
@@ -189,54 +188,31 @@ jobs:
       # Step 6: Wait for Instance Refresh to Complete
       - name: Wait for Instance Refresh to Complete
         run: |
-            # Fetch the current status of the instance refresh
-            STATUS=$(aws autoscaling describe-instance-refreshes \
-              --auto-scaling-group-name app_asg \
-              --instance-refresh-ids "${REFRESH_ID}" \
-              --query 'InstanceRefreshes[0].Status' \
-              --output text)
-#            while [[ "$STATUS" != "Successful" && "$STATUS" != "Failed" && "$STATUS" != "Cancelled" ]]; do
-#              echo "Instance refresh is in progress. Checking again in 30 seconds..."
-#              sleep 30
-#              STATUS=$(aws autoscaling describe-instance-refreshes \
-#              --auto-scaling-group-name app_asg \
-#              --instance-refresh-ids "${REFRESH_ID}" \
-#              --query 'InstanceRefreshes[0].Status' \
-#              --output text)
-#            done
-#
-#
-#            # Handle different statuses
-#            if [[ "$STATUS" = "Successful" ]]; then
-#              echo "Instance refresh completed successfully."
-#              break
-#            elif [[ "$STATUS" = "Failed" ]]; then
-#              echo "Instance refresh failed."
-#              exit 1
-#            elif [[ "$STATUS" = "Cancelled" ]]; then
-#              echo "Instance refresh was cancelled."
-#              exit 1
-#            else
-#              echo "Instance refresh is in progress. Checking again in 30 seconds..."
-#              sleep 30
-#            fi
           while true; do
-          # Handle different statuses
-               if [[ "$STATUS" = "Successful" ]]; then
-               echo "Instance refresh completed successfully."
-               break
-               elif [[ "$STATUS" = "Failed" ]]; then
-               echo "Instance refresh failed."
-               exit 1
-               elif [[ "$STATUS" = "Cancelled" ]]; then
-               echo "Instance refresh was cancelled."
-               exit 1
-               else
-               echo "Instance refresh is in progress. Checking again in 30 seconds..."
-               sleep 30
-               fi
-               done
+            # Fetch the current status of the instance refresh
+          STATUS=$(aws autoscaling describe-instance-refreshes \
+          --auto-scaling-group-name app_asg \
+          --instance-refresh-ids "${REFRESH_ID}" \
+          --query 'InstanceRefreshes[0].Status' \
+          --output text)
 
+         echo "Instance Refresh Status: $STATUS"
+
+         # Handle different statuses
+         if [[ "$STATUS" = "Successful" ]]; then
+          echo "Instance refresh completed successfully."
+          break
+         elif [[ "$STATUS" = "Failed" ]]; then
+          echo "Instance refresh failed."
+          exit 1
+         elif [[ "$STATUS" = "Cancelled" ]]; then
+          echo "Instance refresh was cancelled."
+          exit 1
+         else
+          echo "Instance refresh is in progress. Checking again in 30 seconds..."
+          sleep 30
+         fi
+         done
 
 
 
