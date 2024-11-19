@@ -171,6 +171,7 @@ jobs:
             --default-version '$Latest'
 
       # Step 5: Start Instance Refresh
+
       - name: Start Instance Refresh
         id: refresh
         run: |
