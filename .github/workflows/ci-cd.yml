@@ -106,26 +106,29 @@ jobs:
         run: |
           # Initialize Packer
           packer init packer/aws-ubuntu.pkr.hcl
-
+          
           # Build the AMI with Packer and capture the output
           echo "Building AMI with Packer..."
           AMI_OUTPUT=$(packer build -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" packer/aws-ubuntu.pkr.hcl)
           
-          # Extract the AMI ID from the output using grep
+          # Log the full output for debugging
           echo "$AMI_OUTPUT"
-          ami_id=$(echo "$AMI_OUTPUT" | grep -oP 'ami-\w+')
-
+          
+          # Extract the AMI ID from the 'Artifacts of successful builds' section
+          ami_id=$(echo "$AMI_OUTPUT" | grep -oP '(?<=us-east-1: )ami-[a-zA-Z0-9]+')
+          
           # Validate that the AMI ID was extracted
           if [ -z "$ami_id" ]; then
             echo "Failed to extract AMI ID from the Packer build output!"
             exit 1
           fi
-
-          # Export the AMI ID as a step output
-          echo "::set-output name=ami_id::$ami_id"
-
+          
+          # Export the AMI ID as an environment variable for use in subsequent steps
+          echo "AMI_ID=$ami_id" >> $GITHUB_ENV
+          
           # Log the extracted AMI ID for debugging
           echo "Extracted AMI ID: $ami_id"
+    
 
   deploy_to_autoscaling:
     name: Deploy Application to Auto-Scaling Group
