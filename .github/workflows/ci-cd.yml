@@ -122,9 +122,6 @@ jobs:
             echo "Failed to extract AMI ID from the Packer build output!"
             exit 1
           fi
-#
-#          # Export the AMI ID as an environment variable for use in subsequent steps
-#          echo "AMI_ID=$ami_id" >> $GITHUB_ENV
           
           # Set the AMI ID as an output of this step
           echo "::set-output name=ami_id::$ami_id"
