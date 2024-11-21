@@ -1,6 +1,6 @@
 variable "profile" {
   type    = string
-  default = "demo"
+  default = "dev"
 }
 
 variable "ami_name_prefix" {
