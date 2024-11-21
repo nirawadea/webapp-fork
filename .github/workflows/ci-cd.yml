@@ -14,22 +14,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Debug ENV Variable
-        run: |
-          echo "ENV variable in test_and_build job: ${{ env.ENV }}"
-
+      # Step 1: Check out the repository code
       - name: Checkout Code
         uses: actions/checkout@v2
 
+      # Step 2: Set up JDK 17 (Java 17 environment)
       - name: Set up JDK 17
         uses: actions/setup-java@v1
         with:
           java-version: '17'
 
+      # Step 3: Run tests and ensure the build is successful
       - name: Run Tests (mvn clean install)
         run: |
           mvn clean install
 
+      # Step 4: Verify the JAR file exists
       - name: Check if JAR file exists
         run: |
           if [ ! -f target/CloudApplication-0.0.1-SNAPSHOT.jar ]; then
@@ -39,12 +39,15 @@ jobs:
             echo "JAR file exists."
           fi
 
+      # Step 5: Archive the build artifact in a separate folder
       - name: Archive Build Artifact
         run: mkdir -p artifacts
 
+      # Step 6: Copy the JAR/WAR file to the artifacts directory
       - name: Copy Build Artifact
         run: cp target/CloudApplication-0.0.1-SNAPSHOT.jar artifacts/
 
+      # Step 7: Upload the build artifact (JAR/WAR) so it can be used in subsequent jobs
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
@@ -60,15 +63,18 @@ jobs:
       ami_id: ${{ steps.build_image.outputs.ami_id }}
 
     steps:
+      # Step 1: Check out the repository code
       - name: Checkout Code
         uses: actions/checkout@v2
 
+      # Step 2: Download Build Artifact
       - name: Download Build Artifact
         uses: actions/download-artifact@v3
         with:
           name: build-artifact
           path: artifacts/
 
+      # Step 3: Check File Existence
       - name: Check File Existence
         run: |
           if [ -f packer/csye6225.service ]; then
@@ -78,15 +84,18 @@ jobs:
             exit 1
           fi
 
+      # Step 4: Set Permissions for Service File
       - name: Set Permissions for Service File
         run: chmod 644 packer/csye6225.service
 
+      # Step 5: Install Packer
       - name: Install Packer
         run: |
           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
           sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
           sudo apt-get update && sudo apt-get install packer
 
+      # Step 6: Set Environment Secrets
       - name: Set Environment Secrets
         id: set-secrets
         run: |
@@ -101,6 +110,7 @@ jobs:
             exit 1
           fi
 
+      # Step 7: Configure AWS Credentials
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -108,28 +118,46 @@ jobs:
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+      # Step 8: Build AMI with Packer and Extract AMI ID
       - name: Build AMI with Packer and Extract AMI ID
         id: build_image
         run: |
+          # Initialize Packer
           packer init packer/aws-ubuntu.pkr.hcl
+          
+          # Build the AMI with Packer and capture the output
+          echo "Building AMI with Packer..."
           AMI_OUTPUT=$(packer build -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" packer/aws-ubuntu.pkr.hcl)
+          
+          # Log the full output for debugging
           echo "$AMI_OUTPUT"
+          
+          # Extract the AMI ID from the 'Artifacts of successful builds' section
           ami_id=$(echo "$AMI_OUTPUT" | grep -oP '(?<=us-east-1: )ami-[a-zA-Z0-9]+')
+          
+          # Validate that the AMI ID was extracted
           if [ -z "$ami_id" ]; then
             echo "Failed to extract AMI ID from the Packer build output!"
             exit 1
           fi
+          
+          # Set the AMI ID as an output of this step
           echo "::set-output name=ami_id::$ami_id"
+          
+          # Log the extracted AMI ID for debugging
           echo "Extracted AMI ID: $ami_id"
+  
 
   deploy_to_autoscaling:
     name: Deploy Application to Auto-Scaling Group
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Check out the repository code
       - name: Checkout Code
         uses: actions/checkout@v2
 
+      # Step 2: Set Environment Secrets
       - name: Set Environment Secrets
         id: set-secrets
         run: |
@@ -144,6 +172,7 @@ jobs:
             exit 1
           fi
 
+      # Step 3: Configure AWS Credentials
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -151,6 +180,7 @@ jobs:
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+      # Step 4: Retrieve Launch Template ID from AWS
       - name: Retrieve Launch Template ID from AWS
         id: launch_template
         run: |
@@ -163,6 +193,7 @@ jobs:
           fi
           echo "LAUNCH_TEMPLATE_ID=$LAUNCH_TEMPLATE_ID" >> $GITHUB_ENV
 
+      # Step 5: Create New Launch Template Version
       - name: Create New Launch Template Version
         run: |
           aws ec2 create-launch-template-version \
@@ -174,6 +205,7 @@ jobs:
             --launch-template-id ${{ env.LAUNCH_TEMPLATE_ID }} \
             --default-version '$Latest'
 
+      # Step 6: Start Instance Refresh
       - name: Start Instance Refresh
         id: refresh
         run: |
@@ -188,20 +220,28 @@ jobs:
           fi
           echo "REFRESH_ID=$REFRESH_ID" >> $GITHUB_ENV
 
+      # Step 7: Wait for Instance Refresh to Complete
       - name: Wait for Instance Refresh to Complete
         run: |
           while true; do
+            # Fetch the current status of the instance refresh
             STATUS=$(aws autoscaling describe-instance-refreshes \
               --auto-scaling-group-name app_asg \
               --instance-refresh-ids "${REFRESH_ID}" \
               --query 'InstanceRefreshes[0].Status' \
               --output text)
+
             echo "Instance Refresh Status: $STATUS"
+
+            # Handle different statuses
             if [[ "$STATUS" = "Successful" ]]; then
               echo "Instance refresh completed successfully."
               break
-            elif [[ "$STATUS" = "Failed" || "$STATUS" = "Cancelled" ]]; then
-              echo "Instance refresh failed or was cancelled."
+            elif [[ "$STATUS" = "Failed" ]]; then
+              echo "Instance refresh failed."
+              exit 1
+            elif [[ "$STATUS" = "Cancelled" ]]; then
+              echo "Instance refresh was cancelled."
               exit 1
             else
               echo "Instance refresh is in progress. Checking again in 30 seconds..."
