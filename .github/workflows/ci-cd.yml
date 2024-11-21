@@ -57,16 +57,25 @@ jobs:
     runs-on: ubuntu-latest
     needs: test_and_build
 
+    env:
+      ENV: dev
+
+    outputs:
+      ami_id: ${{ steps.build_image.outputs.ami_id }}
+
     steps:
+      # Step 1: Check out the repository code
       - name: Checkout Code
         uses: actions/checkout@v2
 
+      # Step 2: Download Build Artifact
       - name: Download Build Artifact
         uses: actions/download-artifact@v3
         with:
           name: build-artifact
           path: artifacts/
 
+      # Step 3: Check File Existence
       - name: Check File Existence
         run: |
           if [ -f packer/csye6225.service ]; then
@@ -76,26 +85,172 @@ jobs:
             exit 1
           fi
 
+      # Step 4: Set Permissions for Service File
       - name: Set Permissions for Service File
-        run: |
-          chmod 644 packer/csye6225.service
+        run: chmod 644 packer/csye6225.service
 
+      # Step 5: Install Packer
       - name: Install Packer
         run: |
           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
           sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
           sudo apt-get update && sudo apt-get install packer
 
+      # Step 6: Set Environment Secrets
+      - name: Set Environment Secrets
+        id: set-secrets
+        run: |
+          if [[ "${{ env.ENV }}" == "dev" ]]; then
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.IAM_USER_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.IAM_USER_SECRET_KEY }}" >> $GITHUB_ENV
+          elif [[ "${{ env.ENV }}" == "demo" ]]; then
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.IAM_USER_ACCESS_KEY_ID_DEMO }}" >> $GITHUB_ENV
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.IAM_USER_AWS_SECRET_ACCESS_KEY_DEMO }}" >> $GITHUB_ENV
+          else
+            echo "Unknown environment: ${{ env.ENV }}"
+            exit 1
+          fi
+
+      # Step 7: Configure AWS Credentials
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.IAM_USER_ACCESS_KEY_ID}}
-          aws-secret-access-key: ${{ secrets.IAM_USER_SECRET_KEY }}
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Build AMI with Packer
+      # Step 7: Build AMI with Packer and Extract AMI ID
+      - name: Build AMI with Packer and Extract AMI ID
+        id: build_image
         run: |
+          # Initialize Packer
           packer init packer/aws-ubuntu.pkr.hcl
-          packer build \
-            -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
-            packer/aws-ubuntu.pkr.hcl
+          
+          # Build the AMI with Packer and capture the output
+          echo "Building AMI with Packer..."
+          AMI_OUTPUT=$(packer build -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" packer/aws-ubuntu.pkr.hcl)
+          
+          # Log the full output for debugging
+          echo "$AMI_OUTPUT"
+          
+          # Extract the AMI ID from the 'Artifacts of successful builds' section
+          ami_id=$(echo "$AMI_OUTPUT" | grep -oP '(?<=us-east-1: )ami-[a-zA-Z0-9]+')
+          
+          # Validate that the AMI ID was extracted
+          if [ -z "$ami_id" ]; then
+            echo "Failed to extract AMI ID from the Packer build output!"
+            exit 1
+          fi
+          
+          # Set the AMI ID as an output of this step
+          echo "::set-output name=ami_id::$ami_id"
+          
+          # Log the extracted AMI ID for debugging
+          echo "Extracted AMI ID: $ami_id"
+  
+
+  deploy_to_autoscaling:
+    name: Deploy Application to Auto-Scaling Group
+    runs-on: ubuntu-latest
+    needs: packer_build
+
+    env:
+      ENV: dev
+
+    steps:
+      # Step 1: Check out the repository code
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      # Step 2: Set Environment Secrets
+      - name: Set Environment Secrets
+        id: set-secrets
+        run: |
+          if [[ "${{ env.ENV }}" == "dev" ]]; then
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.IAM_USER_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.IAM_USER_SECRET_KEY }}" >> $GITHUB_ENV
+          elif [[ "${{ env.ENV }}" == "demo" ]]; then
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.IAM_USER_ACCESS_KEY_ID_DEMO }}" >> $GITHUB_ENV
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.IAM_USER_AWS_SECRET_ACCESS_KEY_DEMO }}" >> $GITHUB_ENV
+          else
+            echo "Unknown environment: ${{ env.ENV }}"
+            exit 1
+          fi
+
+      # Step 3: Configure AWS Credentials
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # Step 3: Retrieve Launch Template ID from AWS
+      - name: Retrieve Launch Template ID from AWS
+        id: launch_template
+        run: |
+          LAUNCH_TEMPLATE_ID=$(aws ec2 describe-launch-templates \
+            --filters Name=launch-template-name,Values=csye6225_asg \
+            --query 'LaunchTemplates[0].LaunchTemplateId' --output text)
+          if [ -z "$LAUNCH_TEMPLATE_ID" ]; then
+            echo "Failed to retrieve Launch Template ID from AWS."
+            exit 1
+          fi
+          echo "LAUNCH_TEMPLATE_ID=$LAUNCH_TEMPLATE_ID" >> $GITHUB_ENV
+
+      # Step 4: Create New Launch Template Version
+      - name: Create New Launch Template Version
+        run: |
+          aws ec2 create-launch-template-version \
+            --launch-template-id ${{ env.LAUNCH_TEMPLATE_ID }} \
+            --source-version '$Latest' \
+            --launch-template-data '{"ImageId":"'"${{ needs.packer_build.outputs.ami_id }}"'"}'
+
+          aws ec2 modify-launch-template \
+            --launch-template-id ${{ env.LAUNCH_TEMPLATE_ID }} \
+            --default-version '$Latest'
+
+      # Step 5: Start Instance Refresh
+
+      - name: Start Instance Refresh
+        id: refresh
+        run: |
+          REFRESH_ID=$(aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name app_asg \
+            --preferences '{"MinHealthyPercentage":90}' \
+            --query 'InstanceRefreshId' \
+            --output text)
+          if [ -z "$REFRESH_ID" ]; then
+            echo "Failed to start instance refresh."
+            exit 1
+          fi
+          echo "REFRESH_ID=$REFRESH_ID" >> $GITHUB_ENV
+
+      # Step 6: Wait for Instance Refresh to Complete
+      - name: Wait for Instance Refresh to Complete
+        run: |
+          while true; do
+            # Fetch the current status of the instance refresh
+            STATUS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name app_asg \
+              --instance-refresh-ids "${REFRESH_ID}" \
+              --query 'InstanceRefreshes[0].Status' \
+              --output text)
+
+            echo "Instance Refresh Status: $STATUS"
+
+            # Handle different statuses
+            if [[ "$STATUS" = "Successful" ]]; then
+              echo "Instance refresh completed successfully."
+              break
+            elif [[ "$STATUS" = "Failed" ]]; then
+              echo "Instance refresh failed."
+              exit 1
+            elif [[ "$STATUS" = "Cancelled" ]]; then
+              echo "Instance refresh was cancelled."
+              exit 1
+            else
+              echo "Instance refresh is in progress. Checking again in 30 seconds..."
+              sleep 30
+            fi
+          done

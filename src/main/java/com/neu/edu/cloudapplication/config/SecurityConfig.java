@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/healthz").permitAll()
                         .requestMatchers("/v1/user").permitAll()
                         .requestMatchers("/upload").permitAll()
+                        .requestMatchers("/v1/user/verify").permitAll()
                         .anyRequest().authenticated()
                 )
                 .httpBasic(withDefaults());

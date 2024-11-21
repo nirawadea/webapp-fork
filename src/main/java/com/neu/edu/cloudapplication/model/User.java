@@ -52,6 +52,12 @@ public class User {
     @Column(name = "upload_date")
     private Date uploadDate;
 
+    @Column(name = "token", unique = true)
+    private String token;
+
+    @Column(name = "is_verified")
+    private boolean isVerified;
+
     @PrePersist
     protected void onCreate() {
         if (id == null) {
@@ -59,6 +65,7 @@ public class User {
         }
         accountCreated = LocalDateTime.now();
         accountUpdated = LocalDateTime.now();
+        isVerified = false;
     }
 
     @PreUpdate

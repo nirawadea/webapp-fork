@@ -2,6 +2,7 @@ package com.neu.edu.cloudapplication.controllers;
 
 import com.neu.edu.cloudapplication.model.ImageResponse;
 import com.neu.edu.cloudapplication.model.User;
+import com.neu.edu.cloudapplication.repository.UserRepository;
 import com.neu.edu.cloudapplication.service.S3Service;
 import com.neu.edu.cloudapplication.service.UserService;
 import com.timgroup.statsd.StatsDClient;
@@ -27,20 +28,20 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Date;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/v1/user")
 public class UserController {
+    private final static Logger logger = LoggerFactory.getLogger(HealthController.class);
     @Autowired
     private UserService userService;
-
     @Autowired
     private S3Service s3Service;
-
     @Autowired
     private StatsDClient statsDClient; // Injecting StatsDClient for metrics tracking
-
-    private final static Logger logger = LoggerFactory.getLogger(HealthController.class);
+    @Autowired
+    private UserRepository userRepository;
 
     @PostMapping
     @PreAuthorize("permitAll()")
@@ -63,7 +64,7 @@ public class UserController {
         } catch (RuntimeException e) {
             logger.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }finally {
+        } finally {
             statsDClient.recordExecutionTime("endpoint.createUser.time", System.currentTimeMillis() - startTime); // Record execution time
         }
 
@@ -73,6 +74,47 @@ public class UserController {
 
         String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
         return email != null && email.matches(emailRegex);
+    }
+
+    @GetMapping("/verify")
+    public ResponseEntity<String> verifyUser(
+            @RequestParam("token") String token,
+            @RequestParam("email") String email,
+            @RequestParam("expires") long expirationTime) {
+        statsDClient.incrementCounter("endpoint.verifyUser.verify");
+        long startTime = System.currentTimeMillis();
+
+        try {
+            // Log the received parameters for debugging
+            logger.info("endpoint.verifyUser.get email={}, token={}, expires={}", email, token, expirationTime);
+
+            if (System.currentTimeMillis() > expirationTime) {
+                logger.warn("Token expired for email: {}", email);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Verification link has expired.");
+            }
+
+            // Retrieve the user based on the email
+            Optional<User> userOptional = userService.getUserByEmail(email);
+            if (userOptional.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("user not found");
+            }
+//            Validate the token
+            User user = userOptional.get();
+            if (!user.getId().equals(token)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid Verification Token");
+            }
+            // Mark the user as verified
+            userService.verifyUser(user);
+
+            return ResponseEntity.ok("Email verified successfully");
+
+        } catch (Exception e) {
+            logger.error("Error during user verification", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Verification failed. Please try again.");
+        } finally {
+            statsDClient.recordExecutionTime("endpoint.verifyUser.time", System.currentTimeMillis() - startTime);
+        }
+
     }
 
     @PutMapping("/self")
@@ -93,12 +135,14 @@ public class UserController {
             if (!authenticatedEmail.equals(user.getEmail())) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email cannot be modified!");
             }
-
+            if (!user.isVerified()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not verified.");
+            }
             userService.updateUser(user, authenticatedEmail);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }finally {
+        } finally {
             statsDClient.recordExecutionTime("endpoint.updateUser.time", System.currentTimeMillis() - startTime);
         }
     }
@@ -109,12 +153,9 @@ public class UserController {
         statsDClient.incrementCounter("endpoint.getUser.get");
         long startTime = System.currentTimeMillis();
 
-
         if (hasQueryParameters()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Query parameters not allowed.");
         }
-
-
         try {
 
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -122,16 +163,20 @@ public class UserController {
 
 
             User user = userService.getUser(authenticatedEmail);
+            // Check if the user is verified
+            if (!user.isVerified()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not verified.");
+            }
             return ResponseEntity.ok().body(user);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }finally {
+        } finally {
             statsDClient.recordExecutionTime("endpoint.getUser.time", System.currentTimeMillis() - startTime);
         }
     }
 
     @PostMapping("/self/pic")
-    public ResponseEntity<?> uploadPic(@RequestParam(value="profilePic") MultipartFile profilePic) {
+    public ResponseEntity<?> uploadPic(@RequestParam(value = "profilePic") MultipartFile profilePic) {
         statsDClient.incrementCounter("endpoint.uploadPic.post");
         long startTime = System.currentTimeMillis();
 
@@ -143,15 +188,18 @@ public class UserController {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String authenticatedEmail = authentication.getName();  // The email used in basic authentication
             User user = userService.getUser(authenticatedEmail);
+            if (!user.isVerified()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not verified.");
+            }
             System.out.println("File Content Type: " + profilePic.getContentType());
             if (!profilePic.getContentType().startsWith("image/")) {
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
             System.out.println(profilePic.getOriginalFilename());
-            String bucket_name = s3Service.uploadFile(user.getId()+ "/" + profilePic.getOriginalFilename(), profilePic);
-            System.out.println("bucket_name "+bucket_name);
+            String bucket_name = s3Service.uploadFile(user.getId() + "/" + profilePic.getOriginalFilename(), profilePic);
+            System.out.println("bucket_name " + bucket_name);
             String url = bucket_name + "/" + user.getId() + "/" + profilePic.getOriginalFilename();
-            System.out.println("url "+url);
+            System.out.println("url " + url);
             user.setUploadDate(new Date());
             user.setFile_name(profilePic.getOriginalFilename());
             user.setUrl(url);
@@ -167,7 +215,7 @@ public class UserController {
             return ResponseEntity.ok().body(imageResponse);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }finally {
+        } finally {
             statsDClient.recordExecutionTime("endpoint.uploadPic.time", System.currentTimeMillis() - startTime);
         }
     }
@@ -184,6 +232,9 @@ public class UserController {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String authenticatedEmail = authentication.getName();  // The email used in basic authentication
             User user = userService.getUser(authenticatedEmail);
+            if (!user.isVerified()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not verified.");
+            }
             if (user.getFile_name() != null) {
                 ImageResponse imageResponse = new ImageResponse(
                         user.getFile_name(),
@@ -198,7 +249,7 @@ public class UserController {
 
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }finally {
+        } finally {
             statsDClient.recordExecutionTime("endpoint.getPic.time", System.currentTimeMillis() - startTime);
         }
     }
@@ -216,14 +267,17 @@ public class UserController {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String authenticatedEmail = authentication.getName();
             User user = userService.getUser(authenticatedEmail);
+            if (!user.isVerified()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not verified.");
+            }
             System.out.println("Deleting file from S3");
             String message = s3Service.deleteFileFromS3Bucket(user.getUrl(), user.getId().toString());
-            System.out.println("message "+message);
+            System.out.println("message " + message);
             userService.updatePicData(null, null, null, user.getEmail());
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }finally {
+        } finally {
             statsDClient.recordExecutionTime("endpoint.deletePic.time", System.currentTimeMillis() - startTime);
         }
     }
