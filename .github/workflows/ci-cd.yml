@@ -5,12 +5,19 @@ on:
     branches:
       - main
 
+env:
+  ENV: demo
+
 jobs:
   test_and_build:
     name: Run Tests and Build Artifact
     runs-on: ubuntu-latest
 
     steps:
+      - name: Debug ENV Variable
+        run: |
+          echo "ENV variable in test_and_build job: ${{ env.ENV }}"
+
       - name: Checkout Code
         uses: actions/checkout@v2
 
@@ -48,8 +55,6 @@ jobs:
     name: Build Custom AMI with Packer
     runs-on: ubuntu-latest
     needs: test_and_build
-    env:
-      ENV: demo
 
     outputs:
       ami_id: ${{ steps.build_image.outputs.ami_id }}
@@ -120,13 +125,8 @@ jobs:
   deploy_to_autoscaling:
     name: Deploy Application to Auto-Scaling Group
     runs-on: ubuntu-latest
-    env:
-      ENV: demo
 
     steps:
-      - name: Debug Environment Variable
-        run: echo "ENV is set to: ${{ env.ENV }}"
-
       - name: Checkout Code
         uses: actions/checkout@v2
 
