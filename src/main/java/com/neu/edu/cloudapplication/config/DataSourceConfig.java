@@ -48,7 +48,7 @@ public class DataSourceConfig {
 
         GetSecretValueResponse secretValueResponse;
 
-        // Parse secret value as JSON
+        // Parse secret value as JSON format
         try {
             secretValueResponse = secretsManagerClient.getSecretValue(secretValueRequest);
             ObjectMapper objectMapper = new ObjectMapper();
