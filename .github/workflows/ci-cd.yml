@@ -58,7 +58,7 @@ jobs:
     needs: test_and_build
 
     env:
-      ENV: demo
+      ENV: dev
 
     outputs:
       ami_id: ${{ steps.build_image.outputs.ami_id }}
