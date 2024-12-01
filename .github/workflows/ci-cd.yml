@@ -155,7 +155,7 @@ jobs:
     needs: packer_build
 
     env:
-      ENV: demo
+      ENV: dev
 
     steps:
       # Step 1: Check out the repository code
