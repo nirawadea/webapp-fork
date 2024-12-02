@@ -69,6 +69,18 @@ source "amazon-ebs" "ubuntu" {
   subnet_id = var.subnet_id
   ami_users = ["047719656602"]
 
+  # Block device mappings for the root volume
+  block_device_mappings = [
+    {
+      device_name           = "/dev/xvda"
+      volume_size           = 25
+      volume_type           = "gp2"
+      delete_on_termination = true
+      encrypted             = true
+      kms_key_id            = "arn:aws:kms:us-east-1:557690612200:key/7523f667-29ca-43ae-9096-89f6ee21fff3"
+    }
+  ]
+
 }
 
 build {
