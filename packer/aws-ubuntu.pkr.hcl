@@ -69,6 +69,15 @@ source "amazon-ebs" "ubuntu" {
   subnet_id = var.subnet_id
   ami_users = ["047719656602"]
 
+  # Root EBS Volume
+  ebs_block_device {
+    device_name           = "/dev/xvda"
+    volume_size           = 25
+    volume_type           = "gp2"
+    delete_on_termination = true
+    encrypted             = true
+    kms_key_id            = "{{user `kms_key_id`}}"
+  }
 }
 
 build {

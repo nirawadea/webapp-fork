@@ -119,16 +119,35 @@ jobs:
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      # Step 7: Build AMI with Packer and Extract AMI ID
+      # Step 8: Fetch AWS Account ID and KMS Key ARN
+      - name: Fetch AWS Account ID and KMS Key ARN
+        id: fetch_aws_data
+        run: |
+          # Fetch the AWS Account ID
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+          echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          
+          # Fetch the KMS Key ARN (assuming key alias or description is used to identify it)
+          KMS_KEY_ARN=$(aws kms list-keys --query 'Keys[0].KeyArn' --output text)
+          echo "KMS_KEY_ARN=$KMS_KEY_ARN" >> $GITHUB_ENV
+          
+          # Validate fetched values
+          echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"
+          echo "KMS_KEY_ARN: $KMS_KEY_ARN"
+
+      # Step 9: Build AMI with Packer and Extract AMI ID
       - name: Build AMI with Packer and Extract AMI ID
         id: build_image
         run: |
           # Initialize Packer
           packer init packer/aws-ubuntu.pkr.hcl
           
-          # Build the AMI with Packer and capture the output
+          # Build the AMI with Packer using dynamically fetched KMS key
           echo "Building AMI with Packer..."
-          AMI_OUTPUT=$(packer build -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" packer/aws-ubuntu.pkr.hcl)
+          AMI_OUTPUT=$(packer build \
+            -var "artifact_path=artifacts/CloudApplication-0.0.1-SNAPSHOT.jar" \
+            -var "kms_key_id=$KMS_KEY_ARN" \
+            packer/aws-ubuntu.pkr.hcl)
           
           # Log the full output for debugging
           echo "$AMI_OUTPUT"
