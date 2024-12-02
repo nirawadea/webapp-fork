@@ -33,7 +33,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/v1/user")
 public class UserController {
-    private final static Logger logger = LoggerFactory.getLogger(HealthController.class);
+    private final static Logger logger = LoggerFactory.getLogger(UserController.class);
     @Autowired
     private UserService userService;
     @Autowired
