@@ -46,6 +46,12 @@ variable "artifact_path" {
   description = "Path to the Spring Boot WAR file"
 }
 
+variable "kms_key_id" {
+  type    = string
+  default = "arn:aws:kms:us-east-1:557690612200:key/7523f667-29ca-43ae-9096-89f6ee21fff3" # Optional: set a default value if appropriate
+}
+
+
 packer {
   required_plugins {
     amazon = {
@@ -70,15 +76,16 @@ source "amazon-ebs" "ubuntu" {
   ami_users = ["047719656602"]
 
   # Root EBS Volume
-  ebs_block_device {
+  launch_block_device_mappings {
     device_name           = "/dev/xvda"
     volume_size           = 25
     volume_type           = "gp2"
     delete_on_termination = true
     encrypted             = true
-    kms_key_id            = "{{user `kms_key_id`}}"
+    kms_key_id            = var.kms_key_id
   }
 }
+
 
 build {
   name    = "packer-build"

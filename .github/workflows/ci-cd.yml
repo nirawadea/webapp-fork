@@ -119,7 +119,7 @@ jobs:
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      # Step 8: Fetch AWS Account ID and KMS Key ARN
+          # Step 8: Fetch AWS Account ID and KMS Key ARN
       - name: Fetch AWS Account ID and KMS Key ARN
         id: fetch_aws_data
         run: |
@@ -127,8 +127,8 @@ jobs:
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
           echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
           
-          # Fetch the KMS Key ARN (assuming key alias or description is used to identify it)
-          KMS_KEY_ARN=$(aws kms list-keys --query 'Keys[0].KeyArn' --output text)
+          # Fetch the KMS Key ARN by alias or ID (replace with your alias)
+          KMS_KEY_ARN=$(aws kms describe-key --key-id alias/your-key-alias --query 'KeyMetadata.Arn' --output text)
           echo "KMS_KEY_ARN=$KMS_KEY_ARN" >> $GITHUB_ENV
           
           # Validate fetched values
@@ -166,6 +166,7 @@ jobs:
           
           # Log the extracted AMI ID for debugging
           echo "Extracted AMI ID: $ami_id"
+  
   
 
   deploy_to_autoscaling:
