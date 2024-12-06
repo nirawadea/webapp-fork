@@ -63,7 +63,7 @@ public class HealthController {
 
     @GetMapping("/cicd")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<?> health(@RequestBody(required = false) String requestPayload) {
+    public ResponseEntity<?> cicd(@RequestBody(required = false) String requestPayload) {
         long startTime = System.currentTimeMillis();
 
         statsDClient.incrementCounter("endpoint.healthz.get");
