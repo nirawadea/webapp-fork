@@ -73,4 +73,34 @@ public class HealthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isServiceUnavailable());
     }
+
+    @Test
+    public void testCicdHealthCheckSuccess() throws Exception {
+        // Simulate successful DB connection for /cicd endpoint
+        when(dataSource.getConnection()).thenReturn(connection);
+
+        mockMvc.perform(get("/cicd")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-cache"));
+    }
+
+    @Test
+    public void testCicdHealthCheckBadRequestWithBody() throws Exception {
+        // Simulate invalid request with body for /cicd endpoint
+        mockMvc.perform(get("/cicd")
+                        .content("some-payload")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void testCicdHealthCheckServiceUnavailable() throws Exception {
+        // Simulate DB connection failure for /cicd endpoint
+        when(dataSource.getConnection()).thenThrow(new SQLException());
+
+        mockMvc.perform(get("/cicd")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isServiceUnavailable());
+    }
 }
