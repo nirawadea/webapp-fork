@@ -38,6 +38,7 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/healthz").permitAll()
+                        .requestMatcher("/cicd").permitAll()
                         .requestMatchers("/v1/user").permitAll()
                         .requestMatchers("/upload").permitAll()
                         .requestMatchers("/v1/user/verify").permitAll()

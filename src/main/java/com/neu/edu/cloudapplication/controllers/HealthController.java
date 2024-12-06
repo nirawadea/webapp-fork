@@ -60,4 +60,39 @@ public class HealthController {
         logger.info("endpoint.healthz.get SERVICE_UNAVAILABLE");
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
     }
+
+    @GetMapping("/cicd")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<?> health(@RequestBody(required = false) String requestPayload) {
+        long startTime = System.currentTimeMillis();
+
+        statsDClient.incrementCounter("endpoint.healthz.get");
+
+        // Handle bad requests
+        if (requestPayload != null && !requestPayload.isEmpty()) {
+            statsDClient.incrementCounter("endpoint.healthz.bad_request.count");
+            statsDClient.recordExecutionTime("endpoint.healthz.response.time", System.currentTimeMillis() - startTime);
+            logger.info("endpoint.healthz.get bad request");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+
+        // Use try-with-resources to manage the connection
+        try (Connection connection = dataSource.getConnection()) {
+            if (connection != null) {
+                statsDClient.incrementCounter("endpoint.healthz.success.count");
+                statsDClient.recordExecutionTime("endpoint.healthz.response.time", System.currentTimeMillis() - startTime);
+                logger.info("endpoint.healthz.get hit successfully");
+                return ResponseEntity.ok().header("Cache-Control", "no-cache").build();
+            }
+        } catch (SQLException e) {
+            statsDClient.incrementCounter("endpoint.healthz.db_failure.count");
+            logger.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
+
+        statsDClient.incrementCounter("endpoint.healthz.failure.count");
+        statsDClient.recordExecutionTime("endpoint.healthz.response.time", System.currentTimeMillis() - startTime);
+        logger.info("endpoint.healthz.get SERVICE_UNAVAILABLE");
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+    }
 }
