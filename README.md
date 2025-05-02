@@ -1,4 +1,4 @@
-# Health Check Monitoring Project
+# Health Check Monitoring Project #healthz
 
 This project includes features for checking the database connection’s health.
 
